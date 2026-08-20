@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐯 萌虎测试平台 v1.5</title>
+<script>
+if(location.protocol==='file:')location.replace('http://127.0.0.1:8898/');
+</script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel:#16213e;--input:#0f3460;--accent:#e94560;--accent2:#00b4d8;--green:#2ecc71;--text:#eee;--text2:#aaa;--text3:#666;--radius:6px;--font:-apple-system,'Segoe UI',sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+nav{display:flex;gap:4px;padding:12px 16px;background:var(--panel);border-bottom:2px solid var(--accent);align-items:center;position:sticky;top:0;z-index:100}
+nav .logo{font-size:18px;font-weight:bold;color:var(--accent);margin-right:20px}
+nav button{background:none;border:none;color:var(--text2);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:14px;transition:all .2s}
+nav button:hover{color:var(--text);background:rgba(255,255,255,.05)}
+nav button.active{color:var(--accent);background:rgba(233,69,96,.1);font-weight:bold}
+main{max-width:1000px;margin:0 auto;padding:24px 16px}
+.tab{display:none}.tab.active{display:block}
+.card{background:var(--panel);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:var(--accent)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #2a3a5c;border-radius:var(--radius);background:var(--input);color:var(--text);font-size:14px;font-family:var(--font)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical}
+.btn{padding:10px 20px;border:none;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.85}
+.btn-secondary{background:var(--input);color:var(--text);border:1px solid #2a3a5c}.btn-secondary:hover{border-color:var(--accent)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.85}
+.btn-danger{background:var(--accent);color:#fff}.btn-danger:hover{opacity:.85}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.attach-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.attach-item{background:var(--input);padding:6px 12px;border-radius:var(--radius);font-size:12px;display:flex;align-items:center;gap:8px}
+.attach-item .remove{color:var(--accent);cursor:pointer;font-weight:bold}
+.stored-attachments{margin:2px 0 14px;padding:10px;border:1px solid #2a3a5c;border-radius:7px;background:rgba(0,180,216,.045)}.stored-attachments:empty{display:none}.stored-attachments-title{margin-bottom:7px;color:var(--text2);font-size:11px;font-weight:700}.stored-attachment{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;background:rgba(255,255,255,.035);font-size:11px}.stored-attachment+.stored-attachment{margin-top:5px}.stored-attachment-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stored-attachment-meta{color:var(--text3);white-space:nowrap}
+.submit-steps{display:none;margin:10px 0 12px;padding:10px;border:1px solid #293c5f;border-radius:8px;background:rgba(255,255,255,.02)}.submit-steps.show{display:block}.submit-step-list{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.submit-step{position:relative;padding-top:23px;color:var(--text3);font-size:9px;text-align:center}.submit-step::before{content:'';position:absolute;top:5px;left:50%;width:12px;height:12px;transform:translateX(-50%);border:2px solid #46516a;border-radius:50%;background:var(--panel);z-index:2}.submit-step:not(:first-child)::after{content:'';position:absolute;top:11px;right:50%;width:calc(100% + 4px);height:2px;background:#36425c;z-index:1}.submit-step.done{color:var(--green)}.submit-step.done::before{content:'✓';display:flex;align-items:center;justify-content:center;border-color:var(--green);background:var(--green);color:#fff;font-size:8px}.submit-step.done::after{background:var(--green)}.submit-step.active{color:var(--accent2);font-weight:700}.submit-step.active::before{border-color:var(--accent2);box-shadow:0 0 0 4px rgba(0,180,216,.12)}.submit-step.error{color:#ff7187;font-weight:700}.submit-step.error::before{content:'!';display:flex;align-items:center;justify-content:center;border-color:var(--accent);background:var(--accent);color:#fff;font-size:8px}.submit-step-message{margin-top:8px;color:var(--text2);font-size:10px;text-align:center;line-height:1.45}
+.ui-state{display:flex;min-height:88px;align-items:center;justify-content:center;gap:11px;padding:18px;border:1px dashed #304464;border-radius:8px;background:rgba(255,255,255,.018);color:var(--text2)}.ui-state-icon{font-size:23px;line-height:1}.ui-state-copy{min-width:0}.ui-state-title{color:var(--text);font-size:12px;font-weight:700}.ui-state-detail{margin-top:3px;color:var(--text3);font-size:10px;line-height:1.5}.ui-state-action{margin-top:8px}.ui-state.loading .ui-state-icon{animation:uiPulse 1.2s ease-in-out infinite}.ui-state.error{border-color:rgba(233,69,96,.35);background:rgba(233,69,96,.035)}.ui-state.error .ui-state-title{color:#ff7187}.ui-state.success{border-color:rgba(46,204,113,.3)}.ui-state.success .ui-state-title{color:var(--green)}@keyframes uiPulse{0%,100%{opacity:.35;transform:scale(.9)}50%{opacity:1;transform:scale(1)}}
+.toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:var(--radius);font-size:14px;color:#fff;animation:fadeIn .3s}
+.toast-success{background:var(--green)}.toast-error{background:var(--accent)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.login-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}.login-dot.on{background:var(--green)}.login-dot.off{background:var(--text3)}.login-name{color:var(--text);font-weight:600}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.case-table{width:100%;font-size:13px;border-collapse:collapse}
+.case-table th{background:var(--input);padding:6px 8px;font-size:12px}
+.case-table td{padding:4px}
+.case-table td input,.case-table td textarea{padding:4px 6px;font-size:12px;min-height:auto}
+.case-table .col-id{width:40px}.case-table .col-p{width:50px}.case-table .col-g,.case-table .col-h{min-width:200px}
+.survey-row:hover{background:rgba(255,255,255,.03)}.survey-row.selected{background:rgba(233,69,96,.1)!important;border-left:3px solid var(--accent)!important}
+.event-shell{width:min(1280px,calc(100vw - 32px));margin-left:50%;transform:translateX(-50%)}
+.event-toolbar{padding:16px 18px!important;border:1px solid rgba(255,255,255,.06);box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.event-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.event-title-row h2{margin:0!important;font-size:18px!important}
+.event-status-pill{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.06);font-size:12px;color:var(--text3)}
+.event-metrics{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.event-metric{padding:5px 10px;border-radius:999px;background:var(--input);color:var(--text2);font-size:12px}
+.event-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.event-search-wrap{position:relative;flex:1;min-width:260px;max-width:440px;margin-left:auto}
+.event-search-wrap input{height:34px;padding:6px 34px 6px 10px;font-size:12px}
+.event-search-clear{position:absolute;right:6px;top:5px;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text2);cursor:pointer;font-size:16px}
+.event-search-clear:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.event-suggestions{display:none;position:absolute;left:0;right:0;top:38px;z-index:60;max-height:320px;overflow:auto;padding:6px;background:#101a32;border:1px solid #36517f;border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.38)}
+.event-suggestions.open{display:block}
+.event-suggestion{display:block;width:100%;padding:8px 10px;border:0;border-radius:5px;background:transparent;color:var(--text);text-align:left;cursor:pointer}
+.event-suggestion:hover,.event-suggestion:focus{background:var(--input);outline:none}
+.event-suggestion-name{display:flex;align-items:center;gap:7px;color:var(--accent2);font-size:13px;font-weight:600}.event-suggestion-kind{padding:2px 5px;border-radius:999px;background:rgba(0,180,216,.12);color:var(--text2);font-size:9px;font-weight:600}.event-suggestion-kind.param{background:rgba(46,204,113,.12);color:var(--green)}.event-suggestion-kind.common{background:rgba(232,183,48,.13);color:#e8b730}
+.event-workspace{display:grid;grid-template-columns:minmax(420px,1.1fr) minmax(360px,.9fr);gap:12px;align-items:start}
+.event-list-card{height:calc(100vh - 225px);min-height:480px;overflow-y:auto;padding:8px!important}
+.event-side{display:grid;gap:12px}
+.event-detail-card{min-height:280px;max-height:calc(55vh - 70px);overflow-y:auto;margin:0!important}
+.event-issues-card{min-height:190px;max-height:calc(45vh - 70px);overflow-y:auto;margin:0!important}
+.event-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:14px}
+.event-row{padding:9px 10px!important;border-bottom:1px solid #263756!important;border-radius:5px;transition:background .15s}
+.event-row-top{display:flex;align-items:center;gap:8px}
+.event-row-time{color:var(--text3);font-size:11px;font-variant-numeric:tabular-nums}
+.event-row-name{color:var(--accent2);font-size:13px;font-weight:600}
+.event-row-desc{margin-top:3px;color:var(--text3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event-row-props{margin-top:4px;color:var(--text2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event-empty{padding:48px 20px;text-align:center;color:var(--text3);font-size:13px;line-height:1.8}
+.lab-shell{width:min(1380px,calc(100vw - 32px));margin-left:50%;transform:translateX(-50%)}
+.lab-stream-row{position:relative;padding:10px 10px 10px 15px;border-bottom:1px solid #263756;cursor:pointer;border-radius:5px}.lab-stream-row:hover{background:rgba(255,255,255,.035)}.lab-stream-row.selected{background:rgba(0,180,216,.08)}
+.lab-stream-row::before{content:'';position:absolute;left:4px;top:15px;width:5px;height:5px;border-radius:50%;background:var(--text3)}.lab-stream-row.pass::before{background:var(--green)}.lab-stream-row.warn::before{background:#e8b730}.lab-stream-row.error::before{background:var(--accent)}
+.lab-row-main{display:flex;align-items:center;gap:7px}.lab-row-name{color:var(--accent2);font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis}.lab-row-time{margin-left:auto;color:var(--text3);font-size:10px}.lab-row-result{margin-top:4px;color:var(--text2);font-size:10px}
+.lab-verdict{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:7px;background:rgba(255,255,255,.035);border-left:4px solid var(--text3)}.lab-verdict.pass{border-color:var(--green);background:rgba(46,204,113,.07)}.lab-verdict.warn{border-color:#e8b730;background:rgba(232,183,48,.07)}.lab-verdict.error{border-color:var(--accent);background:rgba(233,69,96,.07)}
+.lab-verdict-icon{font-size:24px}.lab-verdict-title{font-size:14px;font-weight:700}.lab-verdict-sub{margin-top:2px;color:var(--text2);font-size:11px}
+.lab-table-wrap{max-height:calc(100vh - 540px);min-height:250px;overflow:auto;border:1px solid #263756;border-radius:6px}
+.lab-table{width:100%;border-collapse:collapse;font-size:11px}.lab-table th{position:sticky;top:0;z-index:2;padding:8px;background:#101a32;color:var(--text2);text-align:left;border-bottom:1px solid #36517f}.lab-table td{padding:7px 8px;border-bottom:1px solid #263756;vertical-align:top}.lab-table tr:last-child td{border-bottom:0}
+.lab-field-name{color:var(--accent2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.lab-field-value{max-width:260px;word-break:break-all;color:var(--text)}
+.lab-badge{display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;font-size:10px;white-space:nowrap}.lab-badge.pass{background:rgba(46,204,113,.14);color:var(--green)}.lab-badge.warn{background:rgba(232,183,48,.14);color:#e8b730}.lab-badge.error{background:rgba(233,69,96,.14);color:#ff7187}.lab-badge.wait{background:rgba(255,255,255,.07);color:var(--text3)}
+.lab-filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.lab-filter-chips:empty{display:none}.lab-filter-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 5px 3px 8px;border:1px solid rgba(0,180,216,.35);border-radius:999px;background:rgba(0,180,216,.09);color:var(--accent2);font-size:11px}.lab-filter-chip.param{border-color:rgba(46,204,113,.38);background:rgba(46,204,113,.09);color:var(--green)}.lab-filter-chip.common{border-color:rgba(232,183,48,.4);background:rgba(232,183,48,.09);color:#e8b730}.lab-filter-kind{font-size:9px;opacity:.78}.lab-filter-chip button{width:17px;height:17px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:var(--text2);cursor:pointer;line-height:17px}.lab-filter-chip button:hover{background:rgba(233,69,96,.2);color:#ff7187}
+.lab-problems-card{margin-top:12px!important}.lab-problem-row{padding:11px 12px;border-bottom:1px solid #263756;cursor:pointer;border-radius:6px}.lab-problem-row:last-child{border-bottom:0}.lab-problem-row:hover{background:rgba(255,255,255,.035)}.lab-problem-head{display:flex;align-items:center;gap:8px}.lab-problem-name{color:var(--accent2);font-size:12px;font-weight:700}.lab-problem-meta{margin-left:auto;color:var(--text3);font-size:10px}.lab-problem-summary{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.lab-problem-issue{padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.04);color:var(--text2);font-size:10px}.lab-problem-issue.error{border-left:2px solid var(--accent)}.lab-problem-issue.warn{border-left:2px solid #e8b730}.lab-problem-issue strong{color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.lab-problem-bug{margin-left:auto;padding:4px 9px!important;font-size:10px!important;white-space:nowrap}.lab-problem-bug:disabled{cursor:not-allowed;opacity:.65}.lab-problem-meta{margin-left:0}
+.lab-spec-update{display:flex;align-items:center;gap:8px;margin-bottom:12px!important;padding:10px 12px!important}.lab-spec-update strong{font-size:12px;white-space:nowrap}.lab-spec-update input{flex:1;height:32px;min-width:260px;font-size:11px}.lab-spec-update-msg{min-width:180px;color:var(--text3);font-size:11px;line-height:1.4}
+.lab-spec-problem{cursor:default}.lab-spec-problem:hover{background:transparent}.lab-spec-problem .lab-problem-name{color:#ff7187}
+.log-shell{width:min(1450px,calc(100vw - 32px));margin-left:50%;transform:translateX(-50%)}.log-grid{display:grid;grid-template-columns:minmax(280px,340px) minmax(600px,1fr);gap:12px;align-items:start}.log-controls{display:grid;gap:10px}.log-env{padding:9px;border-radius:6px;background:rgba(255,255,255,.035);color:var(--text2);font-size:11px;line-height:1.6}.log-env.error{border-left:3px solid var(--accent)}.log-env code{display:block;margin-top:5px;padding:6px;background:#0b1224;color:var(--accent2);word-break:break-all}.log-console-toolbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:8px}.log-console-toolbar #log-search{min-width:220px;flex:1 1 280px}.saved-file-box{margin:8px 0 0;padding:8px 10px;border:1px solid rgba(46,204,113,.25);border-radius:7px;background:rgba(46,204,113,.06)}.saved-file-box .btn{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px}.log-console{height:58vh;min-height:430px;overflow:auto;padding:8px 10px;border:1px solid #263756;border-radius:7px;background:#070b14;color:#c9d5e8;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-all}.log-line{padding:1px 0}.log-line .time{color:#71809b}.log-line .proc{color:var(--accent2)}.log-level-badge{display:inline-block;min-width:54px;margin:0 5px;padding:0 5px;border-radius:3px;background:rgba(255,255,255,.08);color:#aeb9cb;font-size:9px;font-weight:700;text-align:center}.level-E .log-level-badge,.level-F .log-level-badge{background:rgba(233,69,96,.18);color:#ff7187}.level-W .log-level-badge{background:rgba(232,183,48,.16);color:#e8b730}.level-I .log-level-badge{background:rgba(0,180,216,.16);color:#8bd4ff}.level-D .log-level-badge,.level-V .log-level-badge{background:rgba(255,255,255,.07);color:#9eabc0}.log-line.level-E,.log-line.level-F{color:#ff7187}.log-line.level-W{color:#e8b730}.log-line.level-I{color:#8bd4ff}.log-empty{padding:80px 15px;text-align:center;color:var(--text3)}.log-status{display:inline-flex;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--text2);font-size:11px}.log-status.running{background:rgba(46,204,113,.12);color:var(--green)}.log-status.error{background:rgba(233,69,96,.12);color:#ff7187}.log-history{width:100%;border-collapse:collapse;font-size:11px}.log-history th,.log-history td{padding:7px;border-bottom:1px solid #263756;text-align:left;vertical-align:top}.log-history th{color:var(--text2)}
+.log-filter-group{display:flex;flex:0 1 auto;align-items:center;gap:6px;flex-wrap:wrap}.log-switch{position:relative;display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:4px 8px 4px 6px;border:1px solid #2a3a5c;border-radius:999px;background:rgba(255,255,255,.025);color:var(--text2);font-size:11px;line-height:1;white-space:nowrap;cursor:pointer;transition:border-color .18s,background .18s,color .18s}.log-switch:hover{border-color:#42618f;background:rgba(255,255,255,.045);color:var(--text)}.log-switch input{position:absolute;width:1px!important;height:1px;min-width:0!important;margin:0;opacity:0;pointer-events:none;flex:none!important}.log-switch-track{position:relative;width:28px;height:16px;flex:0 0 28px;border-radius:999px;background:#46516a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:background .18s,box-shadow .18s}.log-switch-track::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#d9dfeb;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .18s,background .18s}.log-switch input:checked+.log-switch-track{background:var(--accent2);box-shadow:0 0 0 1px rgba(0,180,216,.25),0 0 10px rgba(0,180,216,.14)}.log-switch input:checked+.log-switch-track::after{transform:translateX(12px);background:#fff}.log-switch input:focus-visible+.log-switch-track{outline:2px solid rgba(0,180,216,.55);outline-offset:2px}.log-switch:has(input:disabled){cursor:not-allowed;opacity:.5}.log-switch-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:rgba(0,180,216,.12);color:var(--accent2);font-size:10px;font-variant-numeric:tabular-nums}.log-switch-count:empty{display:none}
+.log-problems-card{margin-top:12px!important;padding:14px 16px!important}.log-problems-title{display:flex;align-items:center;gap:8px;margin-bottom:8px}.log-problems-title strong{font-size:14px}.log-problems-hint{margin-left:auto;color:var(--text3);font-size:10px}.log-problem-badge{display:inline-flex;min-width:18px;height:18px;padding:0 5px;align-items:center;justify-content:center;border-radius:999px;background:rgba(233,69,96,.18);color:#ff7187;font-size:10px}.log-problem-badge:empty{display:none}.log-problems{max-height:52vh;overflow:auto}.log-problems>.log-empty{padding:22px 12px}.log-problem-card{margin-bottom:8px;padding:12px;border:1px solid #293c5f;border-radius:8px;background:rgba(255,255,255,.025)}.log-problem-card:last-child{margin-bottom:0}.log-problem-card.critical{border-left:3px solid var(--accent)}.log-problem-card.error{border-left:3px solid #e8b730}.log-problem-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.log-problem-kind{padding:3px 7px;border-radius:999px;background:rgba(233,69,96,.13);color:#ff7187;font-size:10px;font-weight:700}.log-problem-card.error .log-problem-kind{background:rgba(232,183,48,.13);color:#e8b730}.log-problem-title{flex:1;min-width:180px;color:var(--text);font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.log-problem-count{color:var(--accent2);font-size:11px;font-variant-numeric:tabular-nums}.log-problem-message{margin-top:8px;color:var(--text2);font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}.log-problem-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;color:var(--text3);font-size:10px}.log-problem-actions{display:flex;gap:6px;margin-top:9px}.log-problem-context{display:none;margin-top:9px;max-height:260px;overflow:auto;padding:9px;border-radius:6px;background:#070b14;color:#b8c5d9;font:10px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-all}.log-problem-context.open{display:block}
+.screen-record-control{padding:10px;border:1px solid #2a3a5c;border-radius:8px;background:rgba(233,69,96,.035)}.screen-record-head{display:flex;align-items:center;gap:7px}.screen-record-head strong{font-size:12px}.screen-record-status{margin-left:auto;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--text3);font-size:10px}.screen-record-status.running{background:rgba(233,69,96,.13);color:#ff7187}.screen-record-status.ready{background:rgba(46,204,113,.12);color:var(--green)}.screen-record-hint{margin:7px 0 9px;color:var(--text3);font-size:10px;line-height:1.45}.screen-record-control button{width:100%}
+@keyframes aiBlink{0%,100%{opacity:0}50%{opacity:1}}.ai-dot{animation:aiBlink 1.4s infinite}.ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
+@media(max-width:900px){.event-workspace,.log-grid{grid-template-columns:1fr}.event-list-card{height:auto;max-height:55vh;min-height:320px}.event-search-wrap{order:2;max-width:none;width:100%;margin-left:0}.event-metrics{margin-left:0}.lab-table-wrap{max-height:420px}.lab-spec-update{flex-wrap:wrap}.lab-spec-update-msg{width:100%}}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}nav{flex-wrap:wrap}.log-filter-group{width:100%}.log-switch{flex:0 0 auto}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🐯 萌虎测试平台 v1.5</span>
+  <button onclick="switchTab('bug')" id="nav-bug" class="active">常规bug提交</button>
+  <button onclick="switchTab('survey')" id="nav-survey">问卷bug提交</button>
+  <button onclick="switchTab('testcase')" id="nav-testcase">用例生成</button>
+  <button onclick="switchTab('eventlab')" id="nav-eventlab">📊 打点测试</button>
+  <button onclick="switchTab('logcapture')" id="nav-logcapture">📱 日志抓取</button>
+  <button onclick="switchTab('auto')" id="nav-auto">自动化测试（开发中）</button>
+  <button onclick="switchTab('tools')" id="nav-tools">🔧 工具</button>
+  <span id="login-area" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <span id="login-status" style="font-size:12px;color:var(--text3)">检查中...</span>
+    <button id="login-btn" class="btn btn-sm btn-secondary" onclick="doLogin()" style="display:none">🔑 飞书登陆</button>
+    <button id="logout-btn" class="btn btn-sm btn-secondary" onclick="doLogout()" style="display:none">退出</button>
+  </span>
+</nav>
+
+<main>
+
+<!-- ===== Android 日志抓取 ===== -->
+<div class="tab log-shell" id="tab-logcapture">
+  <div class="event-title-row" style="margin-bottom:12px">
+    <h2>📱 Android App 日志抓取</h2>
+    <span id="log-status" class="log-status">未启动</span>
+    <span id="log-session-meta" style="margin-left:auto;color:var(--text3);font-size:11px"></span>
+  </div>
+  <div class="log-grid">
+    <div>
+      <div class="card log-controls">
+        <div id="log-env" class="log-env">正在检测本机日志工具...</div>
+        <div class="form-group"><label>USB 设备</label><div style="display:flex;gap:6px"><select id="log-device" onchange="logLoadApps()" style="flex:1"><option value="">请选择设备</option></select><button id="log-refresh" class="btn btn-secondary btn-sm" onclick="logRefreshDevices()">刷新</button></div></div>
+        <div class="form-group"><label>第三方 App</label><input id="log-app-search" type="text" placeholder="搜索 App 名称或标识" oninput="logRenderApps()"><select id="log-app" size="8" style="width:100%;margin-top:6px"></select></div>
+        <button id="log-capture-toggle" class="btn btn-green" onclick="logToggleCapture()">▶ 开始抓取</button>
+        <div class="screen-record-control">
+          <div class="screen-record-head"><strong>🎥 问题现场录屏</strong><span id="screen-record-status" class="screen-record-status">未启动</span></div>
+          <div id="screen-record-hint" class="screen-record-hint">无声音 · 提交 Bug 自动附带问题前 60 秒 + 问题后 20 秒</div>
+          <label class="log-switch" style="width:100%;box-sizing:border-box"><input id="screen-record-auto" type="checkbox" checked onchange="screenRecordAutoToggle()"><span class="log-switch-track" aria-hidden="true"></span><span>抓取日志时自动录屏</span></label>
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <label style="flex:1;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)"><input type="radio" name="screen-save-mode" value="standard" checked>前 60s + 后 20s</label>
+            <label style="flex:1;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)"><input type="radio" name="screen-save-mode" value="realtime">实时（前 60s）</label>
+          </div>
+          <button class="btn btn-primary btn-sm" id="screen-record-save" onclick="screenRecordSave()" style="width:100%;margin-top:8px" disabled>💾 保存视频</button>
+          <div id="screen-record-saved"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="event-section-title"><strong>历史会话</strong><span id="log-total-size" style="font-size:10px;color:var(--text3)"></span><button id="log-clear-history" class="btn btn-danger btn-sm" onclick="logClearHistory()" style="margin-left:auto" disabled>清理全部</button></div>
+        <div style="max-height:310px;overflow:auto"><table class="log-history"><thead><tr><th>会话</th><th>大小</th><th>操作</th></tr></thead><tbody id="log-history-body"><tr><td colspan="3">暂无记录</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div class="card" style="margin:0">
+      <div class="log-console-toolbar">
+        <input id="log-search" type="text" placeholder="搜索当前日志内容" oninput="logRenderLines()">
+        <select id="log-level" onchange="logRenderLines()"><option value="">全部级别</option><option value="V">Verbose</option><option value="D">Debug</option><option value="I">Info</option><option value="W">Warning</option><option value="E">Error</option><option value="F">Fault</option></select>
+        <button id="log-pause" class="btn btn-secondary btn-sm" onclick="logTogglePause()">暂停滚动</button>
+        <button class="btn btn-secondary btn-sm" onclick="logClearView()">清屏</button>
+        <button id="log-save-current" class="btn btn-secondary btn-sm" onclick="logSaveCurrent()" disabled>💾 保存日志</button>
+        <button id="log-submit-bug" class="btn btn-primary btn-sm" onclick="logCreateSessionBug()" disabled>🐛 提交 Bug</button>
+        <div class="log-filter-group" aria-label="日志显示选项">
+          <label class="log-switch" title="隐藏 Android 系统和渲染产生的高频日志"><input id="log-hide-system" type="checkbox" checked onchange="logRenderLines()"><span class="log-switch-track" aria-hidden="true"></span><span>隐藏系统/渲染日志</span><span id="log-hidden-count" class="log-switch-count"></span></label>
+          <label class="log-switch" title="隐藏 Unity 自动输出的调用栈"><input id="log-hide-unity-stack" type="checkbox" checked onchange="logRenderLines()"><span class="log-switch-track" aria-hidden="true"></span><span>隐藏 Unity 调用栈</span><span id="log-hidden-stack-count" class="log-switch-count"></span></label>
+          <label class="log-switch" title="新日志到达时自动滚动到底部"><input id="log-autoscroll" type="checkbox" checked><span class="log-switch-track" aria-hidden="true"></span><span>自动滚动</span></label>
+        </div>
+      </div>
+      <div id="log-console" class="log-console"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">尚未开始抓取</div><div class="ui-state-detail">选择 USB 设备和 App 后开始抓取</div></div></div></div>
+      <div id="log-saved"></div>
+    </div>
+  </div>
+  <div class="card log-problems-card">
+    <div class="log-problems-title"><strong>⚠️ 问题总览</strong><span id="log-problem-badge" class="log-problem-badge"></span><span class="log-problems-hint">自动汇总崩溃、异常和网络错误</span></div>
+    <div id="log-problems" class="log-problems"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">暂无日志问题</div><div class="ui-state-detail">开始抓取后自动汇总崩溃、异常和网络错误</div></div></div></div>
+  </div>
+</div>
+
+<!-- ===== 打点测试 ===== -->
+<div class="tab lab-shell" id="tab-eventlab">
+  <div class="card event-toolbar" style="margin-bottom:12px">
+    <div class="event-title-row">
+      <h2>📊 打点测试</h2>
+      <span id="lab-run-status" class="event-status-pill">未启动</span>
+      <span id="lab-count" class="event-metric" style="margin-left:auto">0 条事件</span>
+    </div>
+    <div class="event-actions">
+      <button class="btn btn-green btn-sm" id="lab-capture-toggle" onclick="labToggleCapture()">▶ 开始抓取</button>
+      <button class="btn btn-secondary btn-sm" onclick="labClear()">🗑 清空</button>
+      <div class="event-search-wrap">
+        <input id="lab-search" type="text" placeholder="搜索事件名或已抓取参数，例如 ht" autocomplete="off" oninput="labSearchInput()" onfocus="labRenderSuggestions()" onblur="labHideSuggestions()">
+        <button type="button" class="event-search-clear" aria-label="清空事件和参数筛选" onclick="labClearFilter()">×</button>
+        <div id="lab-suggestions" class="event-suggestions" role="listbox"></div>
+        <div id="lab-filter-chips" class="lab-filter-chips" aria-label="已添加的事件筛选"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card lab-spec-update">
+    <strong>🔄 更新打点规范</strong>
+    <input type="text" id="lab-spec-url" aria-label="打点规范飞书表格链接" value="https://funarkgame.feishu.cn/wiki/N7IVw6ocHiwoExkcYSFcd2ttn6o?sheet=jEAYXN">
+    <button class="btn btn-primary btn-sm" id="lab-spec-update-btn" onclick="updateSpec('lab')">更新并校验</button>
+    <span id="lab-spec-update-msg" class="lab-spec-update-msg">固定读取“次留版本test2打点（正式内容）”</span>
+  </div>
+
+  <div class="event-workspace">
+    <div class="card event-list-card">
+      <div class="event-section-title"><strong>事件列表</strong><span style="font-size:11px;color:var(--text3)">最新事件在上</span></div>
+      <div id="lab-stream"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">尚未开始抓取</div><div class="ui-state-detail">开始抓取后操作模拟器</div></div></div></div>
+    </div>
+    <div class="card event-detail-card" style="max-height:calc(100vh - 225px)">
+      <div class="event-section-title"><strong>参数校验</strong><span id="lab-selected-meta" style="margin-left:auto;font-size:11px;color:var(--text3)"></span><button type="button" class="btn btn-secondary btn-sm" id="lab-common-toggle" onclick="labToggleCommonParams()" aria-pressed="false">显示公参</button></div>
+      <div id="lab-verdict" class="lab-verdict">
+        <div class="lab-verdict-icon">👈</div>
+        <div><div class="lab-verdict-title">请选择一条事件</div><div class="lab-verdict-sub">点击左侧记录查看参数和校验结果</div></div>
+      </div>
+      <div class="lab-table-wrap" style="margin-top:10px;max-height:calc(100vh - 360px)">
+        <table class="lab-table">
+          <thead><tr><th>结果</th><th>参数</th><th>实际值</th><th>规范类型</th><th>说明</th></tr></thead>
+          <tbody id="lab-param-body"><tr><td colspan="5"><div class="event-empty" style="padding:42px 12px">暂无参数数据</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card lab-problems-card">
+    <div class="event-section-title"><strong>问题总览</strong><span id="lab-problem-count" style="font-size:11px;color:var(--text3)">0 条问题记录</span></div>
+    <div id="lab-problem-list"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">暂无打点问题</div><div class="ui-state-detail">开始抓取后汇总所有错误和警告</div></div></div></div>
+  </div>
+</div>
+
+<!-- ===== Bug提交 ===== -->
+<div class="tab active" id="tab-bug">
+<div class="two-col">
+  <div class="card">
+    <h2>🐛 常规bug提交</h2>
+    <div style="display:flex;gap:0;margin-bottom:16px;background:var(--input);border-radius:var(--radius);overflow:hidden">
+      <button id="mode-detail" onclick="setMode('detail')" style="flex:1;padding:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📋 详细提交</button>
+      <button id="mode-simple" onclick="setMode('simple')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📝 简单提交</button>
+    </div>
+    <div class="form-group">
+      <label>附件（截图/视频/日志，多选，将上传到飞书相关附件）</label>
+      <input type="file" id="bug-files" multiple accept="image/*,video/*,.txt,.log,.zip,.gz,.tar" onchange="onBugFilesChange()">
+      <div class="attach-list" id="bug-attach-list"></div>
+    </div>
+    <div class="form-group">
+      <label>简述</label>
+      <textarea id="bug-brief" rows="3" placeholder="简单描述你遇到的问题，模块/严重程度/优先级自动判断"></textarea>
+    </div>
+    <div class="form-group">
+      <label>经办人</label>
+      <input type="text" id="bug-assignee" placeholder="输入经办人姓名" value="萌虎">
+    </div>
+    <button class="btn btn-primary" id="bug-generate-btn" onclick="executeBug()" style="width:100%">生成预览</button>
+  </div>
+  <div class="card">
+    <h2>👁 预览（可编辑）</h2>
+    <div id="bug-preview-status" style="font-size:11px;color:var(--text3);margin-bottom:8px"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">等待生成预览</div><div class="ui-state-detail">填写左侧表单后生成可编辑预览</div></div></div></div>
+    <div id="bug-submit-steps" class="submit-steps"></div>
+    <div id="preview-editor" style="display:none">
+      <div class="form-group"><label>标题</label><input type="text" id="p-title"></div>
+      <div class="two-col">
+        <div class="form-group"><label>模块</label><input type="text" id="p-module"></div>
+        <div class="form-group"><label>经办人</label><input type="text" id="p-assignee"></div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label>严重程度</label><select id="p-severity"><option value="1">严重</option><option value="2" selected>重要</option><option value="3">一般</option><option value="5">微小</option></select></div>
+        <div class="form-group"><label>优先级</label><select id="p-priority"><option value="0">P0</option><option value="1" selected>P1</option><option value="2">P2</option><option value="kvt5xvrgc">P3</option><option value="99">待定</option></select></div>
+      </div>
+      <div id="bug-stored-attachments" class="stored-attachments"></div>
+      <div class="form-group"><label>完整描述（提交到飞书的 description 字段）</label><textarea id="p-description" rows="8"></textarea></div>
+    </div>
+    <button class="btn btn-green" id="btn-confirm" onclick="confirmAndSubmit()" disabled style="width:100%;margin-top:12px">提交到飞书</button>
+  </div>
+</div>
+</div>
+
+<!-- ===== 问卷bug提交 ===== -->
+<div class="tab" id="tab-survey">
+<div class="two-col">
+  <div class="card" style="max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">📋 问卷列表</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="survey-update-time" style="font-size:11px;color:var(--text3)"></span>
+        <button class="btn btn-sm btn-secondary" id="survey-refresh-btn" onclick="refreshSurvey()">🔄 刷新</button>
+      </div>
+    </div>
+    <div id="survey-list"><div class="ui-state loading"><div class="ui-state-icon">◌</div><div class="ui-state-copy"><div class="ui-state-title">正在加载问卷</div><div class="ui-state-detail">正在读取最新问卷记录</div></div></div></div>
+  </div>
+  <div class="card">
+    <h2>👁 预览（可编辑）</h2>
+    <div class="form-group">
+      <label>简述（选填，写了就以你的为准）</label>
+      <textarea id="survey-brief" rows="2" placeholder="留空则用表格内容自动生成"></textarea>
+    </div>
+    <div id="survey-preview-status" style="font-size:11px;color:var(--text3);margin-bottom:8px"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">尚未选择问卷</div><div class="ui-state-detail">从左侧选择一条记录生成预览</div></div></div></div>
+    <div id="survey-submit-steps" class="submit-steps"></div>
+    <div id="survey-preview-editor" style="display:none">
+      <div class="form-group"><label>标题</label><input type="text" id="sp-title"></div>
+      <div class="two-col">
+        <div class="form-group"><label>模块</label><input type="text" id="sp-module"></div>
+        <div class="form-group"><label>经办人</label><input type="text" id="sp-assignee" value="萌虎"></div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label>严重程度</label><select id="sp-severity"><option value="1">严重</option><option value="2" selected>重要</option><option value="3">一般</option><option value="5">微小</option></select></div>
+        <div class="form-group"><label>优先级</label><select id="sp-priority"><option value="0">P0</option><option value="1" selected>P1</option><option value="2">P2</option><option value="kvt5xvrgc">P3</option><option value="99">待定</option></select></div>
+      </div>
+      <div id="survey-stored-attachments" class="stored-attachments"></div>
+      <div class="form-group"><label>完整描述</label><textarea id="sp-description" rows="8"></textarea></div>
+    </div>
+    <button class="btn btn-green" id="survey-btn-confirm" onclick="surveyConfirm()" disabled style="width:100%;margin-top:12px">提交到飞书</button>
+  </div>
+</div>
+</div>
+
+<!-- ===== 自动化测试 ===== -->
+<div class="tab" id="tab-auto">
+  <div style="text-align:center;padding:40px;color:var(--text3)">自动化测试 — 待开发</div>
+</div>
+
+<!-- ===== 工具 ===== -->
+<div class="tab" id="tab-tools">
+  <div class="card">
+    <h2>🔧 工具</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+
+      <div style="background:var(--input);border-radius:var(--radius);padding:20px">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px">🔄 飞书重新授权</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          当问卷加载提示"飞书授权已过期"时，点击此按钮重新授权。运行 <code style="background:var(--bg);padding:1px 4px;border-radius:3px">npx feishu-user-plugin oauth</code>
+        </div>
+        <button class="btn btn-primary" id="reauth-btn" onclick="doReauth()" style="width:100%">开始授权</button>
+        <div id="reauth-output" style="display:none;margin-top:12px;background:#0a0e1a;border:1px solid #2a3a5c;border-radius:var(--radius);padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:300px;overflow-y:auto;color:var(--green)"></div>
+      </div>
+
+      <div style="background:var(--input);border-radius:var(--radius);padding:20px">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px">🧹 测试用例缓存</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          分析 Bug 时会缓存飞书测试用例内容和关键词搜索结果；如果飞书用例刚更新，点这里强制清理。
+        </div>
+        <button class="btn btn-secondary" id="clear-cache-btn" onclick="clearTestcaseCache()" style="width:100%">清理测试用例缓存</button>
+      </div>
+
+      <div style="background:var(--input);border-radius:var(--radius);padding:20px">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px">🗑️ 上传附件清理</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          删除上传目录里未被任何 Bug 引用的附件（录屏、日志等），释放磁盘空间；已提交 Bug 的飞书附件不受影响。
+        </div>
+        <button class="btn btn-secondary" id="clear-uploads-btn" onclick="clearUploads()" style="width:100%">清理全部未引用附件</button>
+      </div>
+
+      <div style="background:var(--input);border-radius:var(--radius);padding:20px">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px">🔄 更新打点规范</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+          输入飞书表格链接，固定读取“次留版本test2打点（正式内容）”页签，同步事件、字段说明和类型。
+        </div>
+        <input type="text" id="spec-url" placeholder="飞书表格链接" value="https://funarkgame.feishu.cn/wiki/N7IVw6ocHiwoExkcYSFcd2ttn6o?sheet=jEAYXN" style="width:100%;margin-bottom:8px;font-size:12px">
+        <button class="btn btn-primary btn-sm" id="spec-update-btn" onclick="updateSpec()" style="width:100%">更新</button>
+        <div id="spec-update-msg" style="font-size:12px;color:var(--text3);margin-top:4px"></div>
+      </div>
+
+      <div style="background:var(--input);border-radius:var(--radius);padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:bold">📦 本地 Bug 记录</div>
+          <button class="btn btn-sm btn-secondary" onclick="loadQueue()">刷新</button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px">失败记录可直接重试；这里的删除只影响本地记录。</div>
+        <div id="bug-queue-list" style="font-size:12px;color:var(--text3)"><div class="ui-state loading"><div class="ui-state-icon">◌</div><div class="ui-state-copy"><div class="ui-state-title">等待加载记录</div></div></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== 用例生成 ===== -->
+<div class="tab" id="tab-testcase">
+  <div class="card">
+    <h2>📝 用例信息</h2>
+    <div class="two-col">
+      <div class="form-group"><label>标题</label><input type="text" id="tc-title" placeholder="如：特殊障碍测试用例_浮木"></div>
+      <div class="form-group"><label>保存路径（由浏览器下载设置决定）</label><input type="text" id="tc-path" placeholder="使用浏览器默认下载目录" disabled></div>
+    </div>
+    <div class="two-col">
+      <div class="form-group"><label>一级模块 B</label><input type="text" id="tc-b" placeholder="如：浮木"></div>
+      <div class="form-group"><label>二级模块 C</label><input type="text" id="tc-c" placeholder="如：UI表现"></div>
+    </div>
+    <div class="two-col">
+      <div class="form-group"><label>三级模块 D</label><input type="text" id="tc-d" placeholder="可选"></div>
+      <div class="form-group"><label>四级模块 E</label><input type="text" id="tc-e" placeholder="可选"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="addTcCase()" style="width:100%">+ 添加用例（基于上述模块）</button>
+  </div>
+  <div class="card">
+    <h2>📋 用例列表 (<span id="tc-count">0</span>条)</h2>
+    <div style="overflow-x:auto">
+      <table class="case-table">
+        <thead><tr><th class="col-id">#</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th class="col-g">操作步骤</th><th class="col-h">期望结果(\n分隔)</th><th class="col-p">优先级</th><th>备注</th><th></th></tr></thead>
+        <tbody id="tc-table-body"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="generateXlsx()">生成并下载 xlsx</button>
+      <button class="btn btn-secondary" onclick="clearAllTc()">清空</button>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:16px;color:var(--text3);font-size:10px">v1.5</div>
+</main>
+
+<script>
+// ============================================================
+// Tab
+// ============================================================
+function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');document.getElementById('nav-'+n).classList.add('active');if(n==='eventlab')labRenderAll()}
+function toast(msg,ok=true){const t=document.createElement('div');t.className='toast '+(ok?'toast-success':'toast-error');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+function esc(s){return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function uiState(kind,title,detail,actionHtml){
+  var icons={loading:'◌',empty:'○',error:'!',success:'✓'},icon=icons[kind]||'○';
+  return '<div class="ui-state '+esc(kind)+'"><div class="ui-state-icon">'+icon+'</div><div class="ui-state-copy"><div class="ui-state-title">'+esc(title)+'</div>'+(detail?'<div class="ui-state-detail">'+esc(detail)+'</div>':'')+(actionHtml?'<div class="ui-state-action">'+actionHtml+'</div>':'')+'</div></div>'
+}
+function formatFileSize(bytes){var value=Number(bytes);if(!Number.isFinite(value)||value<0)return '';var units=['B','KB','MB','GB'],i=0;while(value>=1024&&i<units.length-1){value/=1024;i++}return (i?value.toFixed(1):String(value))+' '+units[i]}
+function renderStoredAttachments(targetId,bug){
+  var el=document.getElementById(targetId);if(!el)return;
+  var rows=(bug&&bug.attachment_details)||[];
+  if(!rows.length){el.innerHTML='';return}
+  el.innerHTML='<div class="stored-attachments-title">📎 将随 Bug 一起提交的附件 · '+rows.length+' 个</div>'+rows.map(function(item){var size=formatFileSize(item.size),source=item.source==='survey'?'问卷附件':'自动/本地附件';return '<div class="stored-attachment"><span>📄</span><span class="stored-attachment-name" title="'+esc(item.name||'附件')+'">'+esc(item.name||'附件')+'</span><span class="stored-attachment-meta">'+esc([source,size].filter(Boolean).join(' · '))+'</span></div>'}).join('')
+}
+function setSubmitProgress(targetId,phase,message){
+  var el=document.getElementById(targetId);if(!el)return;
+  if(!phase){el.className='submit-steps';el.innerHTML='';return}
+  var labels=['预览已生成','保存确认','上传附件并创建 Bug','完成'],states=['','','',''];
+  if(phase==='ready')states=['done','active','',''];
+  else if(phase==='confirming')states=['done','active','',''];
+  else if(phase==='submitting')states=['done','done','active',''];
+  else if(phase==='success')states=['done','done','done','done'];
+  else if(phase==='error-confirm')states=['done','error','',''];
+  else if(phase==='error-submit')states=['done','done','error',''];
+  el.className='submit-steps show';el.innerHTML='<div class="submit-step-list">'+labels.map(function(label,index){return '<div class="submit-step '+states[index]+'">'+label+'</div>'}).join('')+'</div><div class="submit-step-message">'+esc(message||'')+'</div>'
+}
+async function api(url,method='GET',body=null){
+  const opts={method,headers:{}};
+  if(body&&!(body instanceof FormData)){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
+  else if(body instanceof FormData){opts.body=body}
+  const r=await fetch(url,opts);
+  const ct=r.headers.get('Content-Type')||'';
+  const data=ct.includes('application/json')?await r.json():await r.text();
+  if(!r.ok||(data&&typeof data==='object'&&data.ok===false)){
+    if(r.status===401){showLoginMask();authUser=null}
+    throw new Error((data&&data.error)||('请求失败 HTTP '+r.status));
+  }
+  return data;
+}
+
+// ============================================================
+// Bug 提交
+// ============================================================
+const bugFiles=[];
+let currentBugId=sessionStorage.getItem('currentBugId')||null;
+let pollTimer=null,progressTimer=null,previewData=null;
+let bugRecordingPollTimer=null;
+let bugMode='detail';
+let eventBugPreview=null;
+try{eventBugPreview=JSON.parse(sessionStorage.getItem('eventBugPreview')||'null')}catch(e){sessionStorage.removeItem('eventBugPreview')}
+
+function setMode(m){
+  bugMode=m;
+  const d=document.getElementById('mode-detail'),s=document.getElementById('mode-simple');
+  if(m==='detail'){d.style.background='var(--accent)';d.style.color='#fff';s.style.background='transparent';s.style.color='var(--text2)'}
+  else{s.style.background='var(--accent)';s.style.color='#fff';d.style.background='transparent';d.style.color='var(--text2)'}
+}
+function getBugMode(){return bugMode}
+
+function onBugFilesChange(){const inp=document.getElementById('bug-files');for(const f of inp.files)bugFiles.push(f);renderBugAttachList();inp.value=''}
+function removeBugFile(i){bugFiles.splice(i,1);renderBugAttachList()}
+function renderBugAttachList(){document.getElementById('bug-attach-list').innerHTML=bugFiles.map((f,i)=>{const icon=f.type.startsWith('image/')?'🖼':f.type.startsWith('video/')?'🎬':'📄';return'<div class="attach-item">'+icon+' '+esc(f.name)+' ('+(f.size/1024).toFixed(0)+'KB) <span class="remove" onclick="removeBugFile('+i+')">✕</span></div>'}).join('')}
+
+function startProgress(){if(progressTimer)clearInterval(progressTimer);const bar=document.getElementById('progress-bar');const text=document.getElementById('progress-text');const steps=[{w:15,t:'识别模块...'},{w:35,t:'查找测试用例...'},{w:55,t:'分析实际表现...'},{w:75,t:'推断预期结果...'},{w:90,t:'生成完整描述...'}];let i=0;if(bar)bar.style.width='5%';if(text)text.textContent='启动分析...';progressTimer=setInterval(()=>{if(i<steps.length){if(bar)bar.style.width=steps[i].w+'%';if(text)text.textContent=steps[i].t;i++}else{if(bar)bar.style.width='95%';if(text)text.textContent='即将完成...'}},1500)}
+function stopProgress(){if(progressTimer){clearInterval(progressTimer);progressTimer=null}const bar=document.getElementById('progress-bar');const text=document.getElementById('progress-text');if(bar){bar.style.width='100%';bar.style.background='var(--green)'}if(text){text.textContent='预览已生成';text.style.color='var(--green)'}}
+
+function showAnalysisFailure(bug){
+  if(pollTimer)clearInterval(pollTimer);
+  if(progressTimer)clearInterval(progressTimer);
+  const msg=bug.error||'AI 分析失败';
+  document.getElementById('bug-preview-status').innerHTML=uiState('error','预览生成失败',msg,'<button class="btn btn-sm btn-primary" onclick="retryBug(currentBugId)">重新生成</button>');
+  setSubmitProgress('bug-submit-steps',null);
+}
+function startPolling(){
+  if(pollTimer)clearInterval(pollTimer);
+  let tries=0;
+  pollTimer=setInterval(async()=>{
+    if(!currentBugId)return;
+    try{
+      const bug=await api('/api/bug/queue/'+encodeURIComponent(currentBugId));
+      if(bug.status==='preview_ready'&&bug.preview){clearInterval(pollTimer);showPreview(bug)}
+      else if(bug.status==='analysis_failed'){showAnalysisFailure(bug)}
+      else if(++tries>90){clearInterval(pollTimer);if(progressTimer)clearInterval(progressTimer);document.getElementById('bug-preview-status').innerHTML='<div style="color:var(--accent)">分析等待超时</div><button class="btn btn-sm btn-secondary" style="margin-top:8px" onclick="retryBug(currentBugId)">重试</button>'}
+    }catch(e){clearInterval(pollTimer);toast(e.message,false)}
+  },2000)
+}
+
+function showBugAnalyzing(){
+  document.getElementById('preview-editor').style.display='none';
+  document.getElementById('bug-preview-status').innerHTML=
+    '<div class="ui-state loading"><div class="ui-state-icon">◌</div><div class="ui-state-copy" style="width:min(320px,100%)"><div class="ui-state-title">AI 正在生成预览</div><div class="ui-state-detail">正在整理模块、问题表现和预期结果</div>'+
+    '<div id="progress-container" style="width:100%;margin:10px auto 0;background:var(--input);border-radius:10px;height:8px;overflow:hidden">'+
+    '<div id="progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:10px;transition:width .3s ease"></div>'+
+    '</div>'+
+    '<div id="progress-text" style="color:var(--text3);font-size:11px;margin-top:8px">启动分析...</div>'+
+    '</div></div>';
+  document.getElementById('btn-confirm').disabled=true;
+  setSubmitProgress('bug-submit-steps',null);
+  startProgress();startPolling()
+}
+async function saveBugDraft(fd){
+  const r=await api('/api/bug/save','POST',fd);
+  currentBugId=r.id;sessionStorage.setItem('currentBugId',r.id);
+  if(r.status==='preview_ready'){
+    const bug=await api('/api/bug/queue/'+encodeURIComponent(r.id));
+    showPreview(bug)
+  }else showBugAnalyzing();
+  return r
+}
+async function executeBug(){
+  const brief=document.getElementById('bug-brief').value.trim();
+  if(!brief){toast('请填写简述',false);return}
+  const assignee=document.getElementById('bug-assignee').value.trim()||'萌虎';
+  const fd=new FormData();fd.append('brief',brief);fd.append('assignee',assignee);fd.append('mode',getBugMode());
+  for(const f of bugFiles)fd.append('files',f);
+  eventBugPreview=null;sessionStorage.removeItem('eventBugPreview');
+  const generateBtn=document.getElementById('bug-generate-btn');generateBtn.disabled=true;generateBtn.textContent='正在生成预览...';
+  try{await saveBugDraft(fd)}catch(e){document.getElementById('bug-preview-status').innerHTML=uiState('error','预览生成失败',e.message);toast('生成预览失败: '+e.message,false)}
+  finally{generateBtn.disabled=false;generateBtn.textContent='生成预览'}
+}
+
+function showPreview(bug){
+  if(bug&&bug.id){currentBugId=bug.id;sessionStorage.setItem('currentBugId',bug.id)}
+  stopProgress();const p=bug.preview||{},eventOverride=eventBugPreview&&eventBugPreview.bugId===currentBugId?eventBugPreview:null;
+  let desc=eventOverride?eventOverride.description:(p.description||'');if(!eventOverride&&bugMode==='simple'&&desc&&!desc.includes('如截图录屏log所示'))desc+='\n（如截图录屏log所示）';
+  const sourceLabel=bug.mode==='detail'&&!eventOverride?'AI 已生成':'预览已生成';
+  document.getElementById('preview-editor').style.display='block';document.getElementById('p-title').value=eventOverride?eventOverride.title:(p.title||bug.bug.title||'');document.getElementById('p-module').value=p.module||bug.bug.module||'';document.getElementById('p-assignee').value=bug.bug.assignee||'萌虎';document.getElementById('p-severity').value=p.severity||'2';document.getElementById('p-priority').value=p.priority||'1';document.getElementById('p-description').value=desc;document.getElementById('bug-preview-status').innerHTML='<span style="color:var(--green);font-size:11px">'+sourceLabel+'，请检查内容和附件后提交</span>';renderStoredAttachments('bug-stored-attachments',bug);setSubmitProgress('bug-submit-steps','ready','预览可编辑，确认无误后提交到飞书');document.getElementById('btn-confirm').disabled=false;document.getElementById('btn-confirm').textContent='提交到飞书';previewData=JSON.parse(JSON.stringify(p));applyRecordingStatus(bug)
+}
+
+function applyRecordingStatus(bug){
+  var status=(bug&&bug.recording_status)||'none';
+  var confirmBtn=document.getElementById('btn-confirm');
+  if(status==='pending'){
+    confirmBtn.disabled=true;confirmBtn.textContent='录屏生成中...';
+    var attEl=document.getElementById('bug-stored-attachments');
+    if(attEl)attEl.insertAdjacentHTML('beforeend','<div style="color:var(--accent2);font-size:11px;margin-top:6px">⏳ 录屏生成中（约 20 秒），就绪后自动出现在这里…</div>');
+    document.getElementById('bug-preview-status').innerHTML='<span style="color:var(--accent2);font-size:11px">预览已生成，录屏生成中…</span>';
+    startBugRecordingPoll();
+  }else if(status==='failed'){
+    confirmBtn.disabled=false;confirmBtn.textContent='提交到飞书';
+    var failedEl=document.getElementById('bug-stored-attachments');
+    if(failedEl)failedEl.insertAdjacentHTML('beforeend','<div style="color:#e8b730;font-size:11px;margin-top:6px">⚠️ 录屏生成失败，本次将提交纯日志</div>');
+  }
+}
+
+function startBugRecordingPoll(){
+  if(bugRecordingPollTimer)return;
+  bugRecordingPollTimer=setInterval(async function(){
+    try{
+      var b=await api('/api/bug/queue/'+encodeURIComponent(currentBugId));
+      if(b&&(b.recording_status==='ready'||b.recording_status==='failed')){
+        clearInterval(bugRecordingPollTimer);bugRecordingPollTimer=null;
+        showPreview(b);
+        toast(b.recording_status==='ready'?'录屏已生成并附加':'录屏生成失败，本次提交纯日志');
+      }
+    }catch(e){}
+  },2500);
+}
+
+function resetBugForNext(){
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null}
+  if(progressTimer){clearInterval(progressTimer);progressTimer=null}
+  if(bugRecordingPollTimer){clearInterval(bugRecordingPollTimer);bugRecordingPollTimer=null}
+  currentBugId=null;previewData=null;eventBugPreview=null;
+  sessionStorage.removeItem('currentBugId');sessionStorage.removeItem('eventBugPreview');
+  document.getElementById('bug-brief').value='';
+  bugFiles.splice(0,bugFiles.length);
+  renderBugAttachList();
+  document.getElementById('bug-files').value='';
+  document.getElementById('preview-editor').style.display='none';
+  document.getElementById('bug-preview-status').innerHTML=uiState('success','上一条已提交','可以继续填写下一条 Bug');
+  document.getElementById('bug-stored-attachments').innerHTML='';
+  setSubmitProgress('bug-submit-steps',null);
+  const btn=document.getElementById('btn-confirm');
+  btn.disabled=true;btn.textContent='提交到飞书';
+}
+
+async function confirmAndSubmit(){
+  if(!currentBugId){toast('请先生成预览',false);return}
+  const submittingBugId=currentBugId;
+  // 简单模式强制追加后缀
+  if(bugMode==='simple'){const descEl=document.getElementById('p-description');const v=descEl.value.trim();if(v&&!v.includes('如截图录屏log所示'))descEl.value=v+'\n（如截图录屏log所示）'}
+  if(!document.getElementById('p-title').value.trim()||!document.getElementById('p-description').value.trim()){toast('标题和描述不能为空',false);return}
+  try{
+    setSubmitProgress('bug-submit-steps','confirming','正在保存你对预览内容的修改');
+    const btn=document.getElementById('btn-confirm');btn.disabled=true;btn.textContent='正在保存并确认...';
+    const editedPreview={
+      title:document.getElementById('p-title').value.trim(),
+      module:document.getElementById('p-module').value.trim(),
+      severity:document.getElementById('p-severity').value,
+      priority:document.getElementById('p-priority').value,
+      description:document.getElementById('p-description').value.trim()
+    };
+    await api('/api/bug/confirm/'+encodeURIComponent(submittingBugId),'POST',{
+      preview:editedPreview,
+      assignee:document.getElementById('p-assignee').value.trim()||'萌虎'
+    });
+    btn.disabled=true;btn.textContent='正在提交到飞书...';
+    setSubmitProgress('bug-submit-steps','submitting','正在上传附件并创建飞书 Bug，请不要重复提交');
+    toast('已确认，正在提交到飞书项目');
+    // 轮询等待提交完成
+    let tries=0;
+    const checkSubmit=setInterval(async()=>{
+      try{
+        const bug=await api('/api/bug/queue/'+encodeURIComponent(submittingBugId));
+        if(bug&&bug.status==='submitted'){
+          clearInterval(checkSubmit);
+          btn.textContent='✅ 提交成功';
+          document.getElementById('bug-preview-status').innerHTML='<span style="color:var(--green);font-size:11px">✅ 已提交到飞书 (ID:'+bug.feishu_work_item_id+')</span>';
+          setSubmitProgress('bug-submit-steps','success','附件和 Bug 均已提交完成');
+          toast('✅ 提交成功！');
+          loadQueue && loadQueue();
+          setTimeout(function(){if(currentBugId===submittingBugId)resetBugForNext()},1500);
+        }else if(bug&&bug.status==='submission_failed'){
+          clearInterval(checkSubmit);
+          btn.disabled=false;btn.textContent='重新提交到飞书';
+          document.getElementById('bug-preview-status').innerHTML='<span style="color:var(--accent)">⚠ '+esc(bug.error||'提交失败')+'</span>';
+          setSubmitProgress('bug-submit-steps','error-submit',bug.error||'附件上传或飞书创建失败，可以重试');
+          toast(bug.error||'提交失败',false);
+        }
+      }catch(e){}
+      if(++tries>120){clearInterval(checkSubmit);btn.disabled=false;btn.textContent='重新提交到飞书';setSubmitProgress('bug-submit-steps','error-submit','提交等待超时，请检查飞书后重试');toast('提交超时，请检查飞书或手动重试',false)}
+    },2000);
+  }catch(e){const btn=document.getElementById('btn-confirm');btn.disabled=false;btn.textContent='重新提交到飞书';setSubmitProgress('bug-submit-steps','error-confirm',e.message||'保存确认失败');toast('确认失败: '+e.message,false)}
+}
+
+// ============================================================
+// 问卷bug提交
+// ============================================================
+let surveyRecords=[],surveySelected=null,surveyBugId=sessionStorage.getItem("surveyBugId")||null,surveySubmitting=false,surveyLastUpdate=null;
+
+async function loadSurvey(force=false){
+  const el=document.getElementById('survey-list');
+  const btn=document.getElementById('survey-refresh-btn');
+  const timeEl=document.getElementById('survey-update-time');
+
+  if(force && btn){btn.disabled=true;btn.textContent='⏳ 刷新中...'}
+  else if(!force) el.innerHTML=uiState('loading','正在加载问卷','正在读取最新问卷记录');
+
+  try{
+    const r=await api(force?'/api/survey/records?force=1':'/api/survey/records');
+    surveyRecords=r.records||[];
+    surveyLastUpdate=new Date();
+    renderSurveyList();
+    if(timeEl) timeEl.textContent='更新于 '+surveyLastUpdate.toLocaleTimeString();
+    if(r._fallback) toast('⚠ 飞书API连接失败，显示的是缓存数据（可能不是最新）', false);
+  }catch(e){
+    const msg=e.message||'';
+    // 网络错误 = 服务未启动
+    if(msg.includes('Failed to fetch')||msg.includes('NetworkError')||msg.includes('Connection')||msg.includes('refused')){
+      el.innerHTML=uiState('error','服务未连接','请确认萌虎测试平台服务已经启动','<button class="btn btn-sm btn-primary" onclick="loadSurvey(true)">重试</button>');
+    }
+    // token 错误 = 需要重新授权
+    else if(msg.includes('Token')||msg.includes('token')||msg.includes('auth')||msg.includes('20025')||msg.includes('20026')){
+      el.innerHTML=uiState('error','飞书授权已过期','请到“工具”页面重新授权后再试','<button class="btn btn-sm btn-primary" onclick="loadSurvey(true)">重试</button>');
+    }
+    // 其他错误
+    else{
+      el.innerHTML=uiState('error','问卷加载失败',msg.slice(0,120),'<button class="btn btn-sm btn-primary" onclick="loadSurvey(true)">重试</button>');
+    }
+  }
+  if(btn){btn.disabled=false;btn.textContent='🔄 刷新'}
+}
+
+function refreshSurvey(){
+  // 刷新时保留当前选中
+  const savedIdx=surveySelected;
+  loadSurvey(true).then(()=>{
+    if(savedIdx!==null && savedIdx<surveyRecords.length){
+      selectSurvey(savedIdx, true);
+    }
+  });
+}
+
+function renderSurveyList(){
+  const el=document.getElementById('survey-list');
+  if(!surveyRecords.length){el.innerHTML=uiState('empty','暂无问卷记录','刷新后仍无记录时，请检查问卷数据源');return}
+  el.innerHTML=surveyRecords.map((r,i)=>'<div class="survey-row" data-idx="'+i+'" onclick="selectSurvey('+i+')" style="padding:10px 12px;border-bottom:1px solid #1e2d4a;cursor:pointer;border-radius:4px;transition:all .15s">'+
+    '<div style="font-size:13px;font-weight:600;margin-bottom:2px"><span style="color:var(--text3);font-size:11px">#'+r.number+'</span> '+esc(r.title||'无标题')+'</div>'+
+    '<div style="font-size:11px;color:var(--text2)">'+esc(r.submitter||'')+' · '+new Date(r.submit_time).toLocaleDateString()+' · <span style="color:var(--accent2)">'+esc(r.status||'')+'</span></div>'+
+    '</div>').join('');
+  // 恢复之前的选中状态
+  if(surveySelected!==null) selectSurvey(surveySelected,true);
+}
+
+function selectSurvey(i,silent){
+  if(surveySubmitting){toast('当前问卷正在提交，请稍候',false);return}
+  const changed=surveySelected!==i;
+  if(changed&&surveyBugId){surveyBugId=null;sessionStorage.removeItem('surveyBugId')}
+  document.querySelectorAll('.survey-row').forEach(r=>{r.classList.remove('selected');r.style.background='';r.style.borderLeft=''});
+  const row=document.querySelector('.survey-row[data-idx="'+i+'"]');
+  if(row){row.classList.add('selected');row.style.background='rgba(233,69,96,.1)';row.style.borderLeft='3px solid var(--accent)'}
+  surveySelected=i;
+  if(changed){
+    document.getElementById('sp-module').value='';
+    document.getElementById('sp-assignee').value='萌虎';
+    document.getElementById('sp-severity').value='2';
+    document.getElementById('sp-priority').value='1';
+  }
+  fillSurveyPreview(surveyRecords[i]);
+}
+
+function fillSurveyPreview(record){
+  const brief=document.getElementById('survey-brief').value.trim();
+  // 简述优先，否则用表格标题
+  const baseTitle=brief||record.title||'';
+  const baseDesc=record.description||'';
+  const envInfo=record.env_info||'';
+
+  // 合并描述：Bug描述 + 环境信息 + （如截图录屏log所示）
+  let descParts=[];
+  if(baseDesc)descParts.push(baseDesc);
+  if(envInfo)descParts.push('环境信息：'+envInfo);
+  descParts.push('（如截图录屏log所示）');
+  const fullDesc=descParts.join('\n\n');
+
+  document.getElementById('survey-preview-editor').style.display='block';
+  const confirmBtn=document.getElementById('survey-btn-confirm');
+  confirmBtn.disabled=false;confirmBtn.textContent='提交到飞书';
+  document.getElementById('sp-title').value=baseTitle;
+  document.getElementById('sp-description').value=fullDesc;
+  document.getElementById('survey-preview-status').innerHTML='<span style="color:var(--green);font-size:11px">已选中 #'+record.number+'，可直接编辑后提交</span>';
+  var surveyDetails=(record.attachments||[]).map(function(item){return {name:(item&&typeof item==='object'?(item.name||item.filename||item.file_name||item.file_token):String(item||'问卷附件')),size:item&&typeof item==='object'?item.size:null,source:'survey'}});
+  renderStoredAttachments('survey-stored-attachments',{attachment_details:surveyDetails});
+  setSubmitProgress('survey-submit-steps','ready','预览可编辑，确认无误后提交到飞书');
+
+  // 监听简述变化，实时更新预览
+  document.getElementById('survey-brief').oninput=function(){
+    fillSurveyPreview(surveyRecords[surveySelected]);
+  };
+}
+
+async function surveyConfirm(){
+  if(surveySelected===null){toast('请先选择问卷记录',false);return}
+  const descEl=document.getElementById('sp-description');const v=descEl.value.trim();
+  if(v&&!v.includes('如截图录屏log所示'))descEl.value=v+'\n（如截图录屏log所示）';
+  if(!document.getElementById('sp-title').value.trim()||!document.getElementById('sp-description').value.trim()){toast('标题和描述不能为空',false);return}
+  const record=surveyRecords[surveySelected];
+  const assignee=document.getElementById('sp-assignee').value.trim()||'萌虎';
+  const preview={
+    title:document.getElementById('sp-title').value.trim(),
+    module:document.getElementById('sp-module').value.trim(),
+    severity:document.getElementById('sp-severity').value,
+    priority:document.getElementById('sp-priority').value,
+    description:document.getElementById('sp-description').value.trim()
+  };
+  const btn=document.getElementById('survey-btn-confirm');
+  surveySubmitting=true;
+  btn.disabled=true;btn.textContent='正在保存并确认...';
+  setSubmitProgress('survey-submit-steps','confirming','正在保存问卷预览和附件信息');
+  try{
+    if(!surveyBugId){
+      const brief=document.getElementById('survey-brief').value.trim()||record.title||'';
+      const saved=await api('/api/bug/save','POST',{
+        brief:brief,assignee:assignee,mode:'survey',preview:preview,
+        submitter:record.submitter||'',survey_desc:record.description||'',
+        survey_env:record.env_info||'',survey_attachments:record.attachments||[]
+      });
+      surveyBugId=saved.id;sessionStorage.setItem('surveyBugId',saved.id);
+    }
+    await api('/api/bug/confirm/'+encodeURIComponent(surveyBugId),'POST',{
+      preview:preview,assignee:assignee
+    });
+    const submittingBugId=surveyBugId;
+    btn.disabled=true;btn.textContent='正在提交到飞书...';
+    document.getElementById('survey-preview-status').innerHTML='<span style="color:var(--accent2);font-size:11px">⏳ 正在提交到飞书项目...</span>';
+    setSubmitProgress('survey-submit-steps','submitting','正在处理问卷附件并创建飞书 Bug');
+    // 轮询等待提交完成
+    let tries=0;
+    const checkSubmit=setInterval(async()=>{
+      try{
+        const bug=await api('/api/bug/queue/'+encodeURIComponent(submittingBugId));
+        if(bug&&bug.status==='submitted'){
+          clearInterval(checkSubmit);
+          btn.textContent='✅ 提交成功';
+          document.getElementById('survey-preview-status').innerHTML='<span style="color:var(--green);font-size:11px">✅ 已提交到飞书</span>';
+          setSubmitProgress('survey-submit-steps','success','问卷附件和 Bug 均已提交完成');
+          toast('✅ 提交成功！');
+          if(surveyBugId===submittingBugId){surveyBugId=null;sessionStorage.removeItem('surveyBugId')}
+          setTimeout(function(){surveySubmitting=false;surveySelected=null;document.querySelectorAll('.survey-row').forEach(r=>r.classList.remove('selected'));document.getElementById('survey-brief').value='';document.getElementById('survey-preview-editor').style.display='none';document.getElementById('survey-stored-attachments').innerHTML='';setSubmitProgress('survey-submit-steps',null);btn.disabled=true;btn.textContent='提交到飞书';document.getElementById('survey-preview-status').innerHTML=uiState('success','上一条问卷已提交','请选择下一条问卷记录')},1500);
+        }else if(bug&&bug.status==='submission_failed'){
+          clearInterval(checkSubmit);
+          surveySubmitting=false;
+          btn.disabled=false;btn.textContent='重新提交到飞书';
+          document.getElementById('survey-preview-status').innerHTML='<span style="color:var(--accent)">⚠ '+esc(bug.error||'提交失败')+'</span>';
+          setSubmitProgress('survey-submit-steps','error-submit',bug.error||'问卷附件处理或飞书创建失败，可以重试');
+          toast(bug.error||'提交失败',false);
+        }
+      }catch(e){}
+      if(++tries>60){clearInterval(checkSubmit);surveySubmitting=false;btn.disabled=false;btn.textContent='重新提交到飞书';setSubmitProgress('survey-submit-steps','error-submit','提交等待超时，请检查飞书后重试');toast('提交超时，请检查飞书',false)}
+    },2000);
+  }catch(e){surveySubmitting=false;btn.disabled=false;btn.textContent='重新提交到飞书';document.getElementById('survey-preview-status').innerHTML='<span style="color:var(--accent)">⚠ '+esc(e.message||'提交失败')+'</span>';setSubmitProgress('survey-submit-steps','error-confirm',e.message||'保存确认失败');toast('确认失败: '+e.message,false)}
+}
+
+// ============================================================
+// 工具页
+// ============================================================
+async function doReauth(){
+  const btn=document.getElementById('reauth-btn');
+  const out=document.getElementById('reauth-output');
+  btn.disabled=true;btn.textContent='⏳ 授权中（浏览器会弹出飞书授权页）...';
+  out.style.display='block';out.style.color='var(--accent2)';out.textContent='正在启动授权流程...\n\n如果浏览器没有自动弹出授权页，请手动运行:\nnpx feishu-user-plugin oauth';
+  try{
+    const r=await api('/api/tools/reauth','POST');
+    out.style.color=r.ok?'var(--green)':'var(--accent)';
+    out.textContent=r.output||r.msg;
+    if(r.ok) toast('✅ 授权成功！');
+    else toast('❌ '+r.msg, false);
+  }catch(e){
+    out.style.color='var(--accent)';
+    out.textContent='请求失败: '+e.message+'\n\n请手动在终端运行:\ncd 虎测平台 && npx feishu-user-plugin oauth';
+    toast('授权请求失败，请手动操作', false);
+  }
+  btn.disabled=false;btn.textContent='重新授权';
+}
+
+async function clearTestcaseCache(){
+  const btn=document.getElementById('clear-cache-btn');
+  btn.disabled=true;btn.textContent='清理中...';
+  try{
+    const r=await api('/api/tools/clear-testcase-cache','POST');
+    toast(r.msg||'测试用例缓存已清理');
+  }catch(e){
+    toast('清理失败: '+e.message,false);
+  }
+  btn.disabled=false;btn.textContent='清理测试用例缓存';
+}
+
+async function clearUploads(){
+  const btn=document.getElementById('clear-uploads-btn');
+  if(!confirm('将删除上传目录里未被任何 Bug 引用的附件（录屏、日志等）。\n已提交 Bug 的飞书附件不受影响。确定清理？'))return;
+  btn.disabled=true;btn.textContent='清理中...';
+  try{
+    const r=await api('/api/tools/clear-uploads','POST',{days:'all'});
+    toast('已清理 '+r.deleted+' 个文件，释放 '+(r.freed_mb||0)+' MB，剩余 '+r.remaining+' 个');
+  }catch(e){
+    toast('清理失败: '+e.message,false);
+  }
+  btn.disabled=false;btn.textContent='清理全部未引用附件';
+}
+
+// 页签切换时加载问卷
+const origSwitchTab=switchTab;
+switchTab=function(n){
+  origSwitchTab(n);
+  if(n==='survey')loadSurvey();
+  if(n==='tools')loadQueue();
+  if(n==='logcapture')loadLogCapturePage();
+};
+
+// ===== Android App 日志抓取 =====
+var logDevices=[],logApps=[],logLines=[],logCursor=0,logPollTimer=null,logPaused=false,logCurrentSession=null,logPageLoaded=false,logProblems=[],logProblemTick=0,logProblemDetails={},logBugGenerating='',logCaptureAction='',screenRecordSession=null,screenRecordAction='',screenRecordEnvironment=null;
+var screenRecordAutoStored=localStorage.getItem('screenRecordAuto');if(screenRecordAutoStored!==null){var screenRecordAutoEl=document.getElementById('screen-record-auto');if(screenRecordAutoEl)screenRecordAutoEl.checked=screenRecordAutoStored!=='false'}
+function logFormatBytes(bytes){var value=Number(bytes)||0,units=['B','KB','MB','GB'],index=0;while(value>=1024&&index<units.length-1){value/=1024;index++}return (index?value.toFixed(1):value)+' '+units[index]}
+async function loadLogCapturePage(){
+  if(!logPageLoaded){logPageLoaded=true;await logRefreshDevices()}
+  await Promise.all([logLoadStatus(),screenRecordLoadStatus()]);await logLoadProblems();await logLoadHistory()
+}
+async function logRefreshDevices(){
+  var envEl=document.getElementById('log-env'),deviceEl=document.getElementById('log-device');
+  if(!envEl||!deviceEl)return;
+  envEl.className='log-env';envEl.textContent='正在检测本机日志工具...';
+  try{
+    var results=await Promise.all([api('/api/log-capture/environment'),api('/api/log-capture/devices')]),env=results[0];logDevices=results[1].devices||[];
+    envEl.textContent='Android：'+(env.android_ready?'可用':'缺少 adb');
+    if(!env.android_ready)envEl.className='log-env error';
+    deviceEl.innerHTML='<option value="">请选择设备</option>'+logDevices.map(function(device,index){return '<option value="'+index+'">'+esc('🤖 '+device.name+(device.version?' · '+device.version:''))+'</option>'}).join('');
+    if(!logDevices.length)envEl.innerHTML+='<div style="margin-top:5px;color:var(--accent)">未检测到 USB 设备</div>';
+    logApps=[];logRenderApps()
+  }catch(e){envEl.className='log-env error';envEl.textContent='设备检测失败：'+e.message}
+}
+async function logLoadApps(){
+  var deviceIndex=document.getElementById('log-device').value,appEl=document.getElementById('log-app');logApps=[];logRenderApps();
+  if(deviceIndex==='')return;
+  var device=logDevices[Number(deviceIndex)];appEl.innerHTML='<option>正在读取 App...</option>';
+  try{var result=await api('/api/log-capture/apps?platform='+encodeURIComponent(device.platform)+'&device_id='+encodeURIComponent(device.id));logApps=result.apps||[];logRenderApps()}catch(e){appEl.innerHTML='<option>读取失败：'+esc(e.message)+'</option>';toast('读取 App 失败：'+e.message,false)}
+}
+function logRenderApps(){
+  var el=document.getElementById('log-app');if(!el)return;
+  var query=(document.getElementById('log-app-search').value||'').trim().toLowerCase(),html='';
+  for(var i=0;i<logApps.length;i++){var app=logApps[i],haystack=(app.name+' '+app.id).toLowerCase();if(query&&haystack.indexOf(query)<0)continue;html+='<option value="'+i+'">'+esc(app.name)+(app.name===app.id?'':' · '+esc(app.id))+'</option>'}
+  el.innerHTML=html||'<option value="">'+(logApps.length?'没有匹配的 App':'暂无 App')+'</option>'
+}
+async function logStart(){
+  var deviceIndex=document.getElementById('log-device').value,appIndex=document.getElementById('log-app').value;
+  if(deviceIndex===''||appIndex===''){toast('请先选择 USB 设备和 App',false);return}
+  var device=logDevices[Number(deviceIndex)],app=logApps[Number(appIndex)];if(!device||!app){toast('设备或 App 已失效，请刷新后重试',false);return}
+  try{
+    logCaptureAction='starting';logRenderStatus();
+    logLines=[];logCursor=0;logPaused=false;logProblems=[];logProblemDetails={};logRenderLines();logRenderProblems();
+    var result=await api('/api/log-capture/start','POST',{platform:device.platform,device_id:device.id,app_id:app.id,app_name:app.name,executable:app.executable||''});
+    logCurrentSession=result.session;logSchedulePoll(100);
+    var autoRecord=document.getElementById('screen-record-auto');
+    if(autoRecord&&autoRecord.checked&&(!screenRecordEnvironment||screenRecordEnvironment.ready))await screenRecordStart(true);
+    toast(autoRecord&&autoRecord.checked&&screenRecordSession&&screenRecordSession.active?'日志抓取和循环录屏已开始':'日志会话已创建并自动保存')
+  }catch(e){toast('启动失败：'+e.message,false)}
+  finally{logCaptureAction='';logRenderStatus()}
+}
+async function logStop(){
+  try{logCaptureAction='stopping';logRenderStatus();await api('/api/log-capture/stop','POST');await Promise.all([logLoadStatus(),screenRecordLoadStatus()]);await logLoadHistory();toast('日志抓取已停止')}
+  catch(e){toast('停止失败：'+e.message,false)}
+  finally{logCaptureAction='';logRenderStatus()}
+}
+async function screenRecordLoadStatus(){
+  try{
+    var results=await Promise.all([api('/api/screen-record/status'),api('/api/screen-record/environment')]);
+    screenRecordSession=results[0].session;screenRecordEnvironment=results[1];screenRecordRenderStatus()
+  }catch(e){screenRecordRenderStatus()}
+}
+async function screenRecordStart(silent){
+  var active=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0;
+  if(!active){toast('请先开始日志抓取',false);return}
+  try{
+    screenRecordAction='starting';screenRecordRenderStatus();
+    var result=await api('/api/screen-record/start','POST',{device_id:logCurrentSession.device_id,session_id:logCurrentSession.id});
+    screenRecordSession=result.session;if(!silent)toast('循环录屏已开始，提交 Bug 时自动附带问题前 60 秒 + 后 20 秒');return true
+  }catch(e){toast('录屏启动失败：'+e.message,false)}
+  finally{screenRecordAction='';screenRecordRenderStatus()}
+  return false
+}
+async function screenRecordStop(silent){
+  try{
+    screenRecordAction='stopping';screenRecordRenderStatus();
+    var result=await api('/api/screen-record/stop','POST');screenRecordSession=result.session;if(!silent)toast('循环录屏已停止，最近片段仍可随 Bug 提交')
+  }catch(e){toast('停止录屏失败：'+e.message,false)}
+  finally{screenRecordAction='';screenRecordRenderStatus()}
+}
+async function screenRecordSave(){
+  if(screenRecordAction)return;
+  var current=screenRecordSession&&logCurrentSession&&screenRecordSession.id===logCurrentSession.id?screenRecordSession:null;
+  if(!(current&&current.active)){toast('当前没有正在运行的循环录屏',false);return}
+  screenRecordAction='saving';screenRecordRenderStatus();
+  try{
+    var modeEl=document.querySelector('input[name="screen-save-mode"]:checked');
+    var mode=modeEl?modeEl.value:'standard';
+    var result=await api('/api/screen-record/save','POST',{mode:mode});
+    if(!(result&&result.file))throw new Error('保存接口未返回文件信息');
+    var savedEl=document.getElementById('screen-record-saved');
+    if(savedEl)savedEl.innerHTML=renderSavedFile(result.file,result.size,result.download,'🎬 视频已保存');
+    toast('视频已保存：'+result.file)
+  }catch(e){toast('保存视频失败：'+e.message,false)}
+  finally{screenRecordAction='';screenRecordRenderStatus()}
+}
+function renderSavedFile(name,size,download,label){
+  var sizeText=size?formatFileSize(size):'';
+  return '<div class="saved-file-box"><div style="font-size:11px;color:var(--green)">'+esc(label)+'</div>'+
+    '<div style="font-size:11px;color:var(--text2);word-break:break-all;margin:2px 0 6px">'+esc(name)+
+    (sizeText?' · '+sizeText:'')+'</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+    '<button class="btn btn-sm btn-secondary" onclick="openUploadsFolder()">📁 打开文件夹</button>'+
+    (download?'<a class="btn btn-sm btn-secondary" href="'+download+'" download style="text-decoration:none">⬇ 重新下载</a>':'')+
+    '</div></div>'
+}
+async function openUploadsFolder(){
+  try{var r=await api('/api/tools/open-uploads','POST');toast('已打开文件夹：'+r.path)}catch(e){toast('打开失败：'+e.message,false)}
+}
+function screenRecordAutoToggle(){
+  if(screenRecordAction)return;
+  var toggle=document.getElementById('screen-record-auto'),enabled=!!(toggle&&toggle.checked),current=screenRecordSession&&logCurrentSession&&screenRecordSession.id===logCurrentSession.id?screenRecordSession:null,logActive=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0;
+  localStorage.setItem('screenRecordAuto',enabled?'true':'false');
+  if(enabled&&logActive&&!(current&&current.active))screenRecordStart();else if(!enabled&&current&&current.active)screenRecordStop();else toast(enabled?'已开启，下次抓取日志时将自动录屏':'已关闭自动录屏')
+}
+function screenRecordRenderStatus(){
+  var statusEl=document.getElementById('screen-record-status'),hintEl=document.getElementById('screen-record-hint'),toggle=document.getElementById('screen-record-auto'),saveBtn=document.getElementById('screen-record-save');if(!statusEl||!toggle)return;
+  var logActive=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0,current=screenRecordSession&&logCurrentSession&&screenRecordSession.id===logCurrentSession.id?screenRecordSession:null,active=current&&current.active;
+  statusEl.className='screen-record-status '+(active?'running':current&&Number(current.available_seconds)>0?'ready':'');
+  statusEl.textContent=screenRecordAction==='starting'?'启动中':screenRecordAction==='stopping'?'停止中':screenRecordAction==='saving'?'保存中...':active?'录制中 · '+Math.floor(Number(current.available_seconds)||0)+'s':current&&Number(current.available_seconds)>0?'已保留 '+Math.floor(Number(current.available_seconds))+'s':'未启动';
+  hintEl.textContent=screenRecordEnvironment&&!screenRecordEnvironment.ready?'需要 adb 和 ffmpeg；当前环境未就绪':('无声音 · 提交 Bug 自动附带问题前 '+(screenRecordEnvironment&&screenRecordEnvironment.before_seconds||40)+' 秒 + 问题后 '+(screenRecordEnvironment&&screenRecordEnvironment.after_seconds||20)+' 秒');
+  toggle.disabled=!!screenRecordAction||!!(screenRecordEnvironment&&!screenRecordEnvironment.ready);
+  if(saveBtn){
+    var saving=screenRecordAction==='saving';
+    saveBtn.disabled=saving||!active||!!(screenRecordEnvironment&&!screenRecordEnvironment.ready);
+    var saveModeEl=document.querySelector('input[name="screen-save-mode"]:checked');
+    saveBtn.textContent=saving?(saveModeEl&&saveModeEl.value==='realtime'?'正在生成视频...':'正在生成视频（约 30 秒）...'):'💾 保存视频';
+    var modeRadios=document.querySelectorAll('input[name="screen-save-mode"]');
+    for(var mi=0;mi<modeRadios.length;mi++)modeRadios[mi].disabled=saving
+  }
+}
+function logToggleCapture(){
+  if(logCaptureAction)return;
+  var active=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0;
+  if(active)logStop();else logStart()
+}
+async function logLoadStatus(){try{var result=await api('/api/log-capture/status');logCurrentSession=result.session;logRenderStatus();if(logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0)logSchedulePoll(300)}catch(e){}}
+function logRenderStatus(){
+  var statusEl=document.getElementById('log-status'),metaEl=document.getElementById('log-session-meta'),toggleEl=document.getElementById('log-capture-toggle'),submitEl=document.getElementById('log-submit-bug'),saveEl=document.getElementById('log-save-current'),session=logCurrentSession;
+  if(!statusEl)return;
+  var active=session&&['starting','waiting','running'].indexOf(session.status)>=0;
+  statusEl.className='log-status '+(logCaptureAction||'')+' '+(session?session.status:'');
+  statusEl.textContent=logCaptureAction==='starting'?'正在启动':logCaptureAction==='stopping'?'正在停止':session?(session.message||session.status):'未启动';
+  metaEl.textContent=session?(session.app_name+' · '+session.line_count+' 行 · '+logFormatBytes(session.size)):'';
+  if(toggleEl){
+    toggleEl.disabled=!!logCaptureAction;
+    toggleEl.className='btn '+(active?'btn-danger':'btn-green');
+    if(logCaptureAction==='starting')toggleEl.textContent='正在启动...';
+    else if(logCaptureAction==='stopping')toggleEl.textContent='正在停止...';
+    else if(active&&session.status==='waiting')toggleEl.textContent='■ 停止等待';
+    else if(active)toggleEl.textContent='■ 停止抓取';
+    else toggleEl.textContent='▶ 开始抓取'
+  }
+  var locked=!!(active||logCaptureAction),controlIds=['log-device','log-refresh','log-app-search','log-app'];
+  for(var i=0;i<controlIds.length;i++){var control=document.getElementById(controlIds[i]);if(control)control.disabled=locked}
+  if(submitEl)submitEl.disabled=!(session&&Number(session.line_count)>0)
+  if(saveEl)saveEl.disabled=!(session&&Number(session.line_count)>0)
+  screenRecordRenderStatus()
+}
+function logSchedulePoll(delay){if(logPollTimer)clearTimeout(logPollTimer);logPollTimer=setTimeout(logPoll,delay||500)}
+async function logPoll(){
+  try{
+    var results=await Promise.all([api('/api/log-capture/status'),api('/api/log-capture/lines?after='+encodeURIComponent(logCursor)+'&limit=1000'),api('/api/screen-record/status')]);
+    logCurrentSession=results[0].session;screenRecordSession=results[2].session;var incoming=results[1].lines||[];if(incoming.length){logLines=logLines.concat(incoming);if(logLines.length>10000)logLines=logLines.slice(-10000);logCursor=results[1].cursor;if(!logPaused)logRenderLines()}
+    logProblemTick++;if(logProblemTick%4===0)await logLoadProblems();
+    logRenderStatus();var active=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0;if(active)logSchedulePoll(500);else logLoadHistory()
+  }catch(e){logSchedulePoll(1200)}
+}
+function logTogglePause(){logPaused=!logPaused;document.getElementById('log-pause').textContent=logPaused?'继续滚动':'暂停滚动';if(!logPaused)logRenderLines()}
+function logClearView(){logLines=[];logRenderLines()}
+function logSaveCurrent(){
+  if(!logCurrentSession||!Number(logCurrentSession.line_count)){toast('当前还没有抓到日志',false);return}
+  api('/api/log-capture/current/save','POST',{}).then(function(result){
+    if(!(result&&result.file))throw new Error('保存接口未返回文件信息');
+    var savedEl=document.getElementById('log-saved');
+    if(savedEl)savedEl.innerHTML=renderSavedFile(result.file,result.size,result.download,'📄 日志已保存');
+    toast('日志已保存：'+result.file)
+  }).catch(function(e){toast('保存日志失败：'+e.message,false)})
+}
+async function logLoadProblems(){
+  try{var result=await api('/api/log-capture/problems');logProblems=result.problems||[];logRenderProblems()}catch(e){}
+}
+function logProblemKindLabel(kind){return {crash:'崩溃',exception:'异常',network:'网络错误',error:'错误'}[kind]||'日志问题'}
+function logRenderProblems(){
+  var el=document.getElementById('log-problems'),badge=document.getElementById('log-problem-badge');if(!el||!badge)return;
+  badge.textContent=logProblems.length?String(logProblems.length):'';
+  if(!logProblems.length){el.innerHTML=logCurrentSession?uiState('success','暂未发现高价值错误','普通 Warning 不会进入问题总览'):uiState('empty','暂无日志问题','开始抓取后自动汇总崩溃、异常和网络错误');return}
+  el.innerHTML=logProblems.map(function(problem){
+    var detail=logProblemDetails[problem.id],context=detail?(detail.context||[]).map(function(row){return esc([row.time,row.source,row.message].filter(Boolean).join(' '))}).join('\n'):'';
+    var bugText=problem.bug_id?'查看 Bug':(logBugGenerating===problem.id?'生成中...':'提交 Bug');
+    var recordingText=problem.recording_status==='ready'?'现场录屏已冻结':problem.recording_status==='pending'?'正在冻结现场录屏':problem.recording_status==='failed'?'现场录屏不可用':'';
+    return '<div class="log-problem-card '+esc(problem.severity||'error')+'"><div class="log-problem-head"><span class="log-problem-kind">'+esc(logProblemKindLabel(problem.kind))+'</span><span class="log-problem-title" title="'+esc(problem.title||'')+'">'+esc(problem.title||'未知错误')+'</span><span class="log-problem-count">'+Number(problem.count||1)+' 次</span></div><div class="log-problem-message">'+esc(problem.message||'')+'</div><div class="log-problem-meta"><span>'+esc(problem.source||'未知来源')+'</span><span>首次 '+esc(problem.first_at||'—')+'</span><span>最近 '+esc(problem.last_at||'—')+'</span>'+(recordingText?'<span>'+esc(recordingText)+'</span>':'')+'</div><div class="log-problem-actions"><button class="btn btn-secondary btn-sm" onclick="logToggleProblem(event,\''+esc(problem.id)+'\')">'+(detail?'收起上下文':'展开上下文')+'</button><button class="btn btn-primary btn-sm" onclick="logCreateProblemBug(event,\''+esc(problem.id)+'\')" '+(logBugGenerating?'disabled':'')+'>'+bugText+'</button></div><div class="log-problem-context '+(detail?'open':'')+'">'+(context||'正在读取上下文...')+'</div></div>'
+  }).join('')
+}
+async function logToggleProblem(clickEvent,id){
+  if(clickEvent)clickEvent.stopPropagation();
+  if(logProblemDetails[id]){delete logProblemDetails[id];logRenderProblems();return}
+  try{var result=await api('/api/log-capture/problems/'+encodeURIComponent(id));logProblemDetails[id]=result.problem;logRenderProblems()}catch(e){toast('读取上下文失败：'+e.message,false)}
+}
+async function logCreateProblemBug(clickEvent,id){
+  if(clickEvent)clickEvent.stopPropagation();if(logBugGenerating)return;
+  var selected=null;for(var i=0;i<logProblems.length;i++)if(logProblems[i].id===id){selected=logProblems[i];break}
+  try{
+    if(selected&&selected.bug_id){var existing=await api('/api/bug/queue/'+encodeURIComponent(selected.bug_id));currentBugId=selected.bug_id;sessionStorage.setItem('currentBugId',currentBugId);setMode('detail');switchTab('bug');showPreview(existing);return}
+    logBugGenerating=id;logRenderProblems();
+    var assignee=document.getElementById('bug-assignee').value.trim()||'萌虎';
+    var saved=await api('/api/log-capture/problems/'+encodeURIComponent(id)+'/bug','POST',{assignee:assignee});
+    currentBugId=saved.id;sessionStorage.setItem('currentBugId',saved.id);eventBugPreview=null;sessionStorage.removeItem('eventBugPreview');setMode('detail');
+    var bug=await api('/api/bug/queue/'+encodeURIComponent(saved.id));await logLoadProblems();switchTab('bug');showPreview(bug);toast(saved.existing?'已打开这个问题的 Bug':saved.recording_status==='pending'?'问题日志已附加，录屏生成中（约 20 秒）':saved.recording_status==='ready'?'问题现场录屏和完整日志已附加':'完整日志已附加，Bug 预览已生成')
+  }catch(e){toast('生成日志 Bug 失败：'+e.message,false)}
+  finally{logBugGenerating='';logRenderProblems()}
+}
+async function logCreateSessionBug(){
+  var button=document.getElementById('log-submit-bug');if(!logCurrentSession||!Number(logCurrentSession.line_count)){toast('当前还没有抓到日志',false);return}
+  try{
+    button.disabled=true;button.textContent='正在打包日志...';
+    var assignee=document.getElementById('bug-assignee').value.trim()||'萌虎';
+    var saved=await api('/api/log-capture/bug','POST',{assignee:assignee,session_id:logCurrentSession.id});
+    currentBugId=saved.id;sessionStorage.setItem('currentBugId',saved.id);eventBugPreview=null;sessionStorage.removeItem('eventBugPreview');setMode('detail');
+    var bug=await api('/api/bug/queue/'+encodeURIComponent(saved.id));document.getElementById('bug-brief').value=bug.bug.brief_description||'';switchTab('bug');showPreview(bug);
+    if(saved.recording_status==='pending'){toast('日志已附加，录屏生成中（约 20 秒）')}
+    else if(saved.recording_status==='failed'){toast('录屏生成失败，本次提交纯日志')}
+    else{toast('已新建本次 Bug：纯日志已附加')}
+  }catch(e){toast('生成日志 Bug 失败：'+e.message,false)}
+  finally{button.textContent='🐛 提交 Bug';logRenderStatus()}
+}
+function logIsSystemNoise(line){
+  var message=(line.message||line.raw||'').trim().toLowerCase(),source=((line.process||'')+' '+(line.tag||'')).toLowerCase();
+  var nestedEmpty=/^\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+\d+\s+[vdiwef]\s+unity\s*:\s*$/i.test(message);
+  var androidGc=/^(?:(?:background|explicit)\s+)?(?:young\s+)?concurrent\s+(?:mark compact|copying)\s+gc freed\b/i.test(message);
+  var unityAstcFallback=/^warning:\s+(?:rgba?|rgb)\s+compressed\s+astc\d+x\d+\s+\S+\s+format is not supported,\s*decompressing texture\s*$/i.test(message);
+  var emulatorMesaQsri=(line.tag||'').toLowerCase()==='mesa'&&/^exportsyncfdforqsrilocked:\s*(?:call for image 0x[0-9a-f]+ hos timage handle 0x[0-9a-f]+|got fd:\s*\d+)\s*$/i.test(message);
+  var unityUnusedAssetDetail=/^unloading \d+ unused serialized files \(serialized files now loaded: \d+\)$/i.test(message)||/^unloading \d+ unused assets \/ \([^)]*\)\. loaded objects now: \d+\.$/i.test(message)||/^memory consumption went from \d+(?:\.\d+)? (?:kb|mb|gb) to \d+(?:\.\d+)? (?:kb|mb|gb)\.$/i.test(message)||/^total: \d+(?:\.\d+)? ms \(findliveobjects: .+ createobjectmapping: .+ markobjects: .+ deleteobjects: .+\)$/i.test(message);
+  return ((line.tag||'').toLowerCase()==='unity'&&!message)||nestedEmpty||androidGc||unityAstcFallback||emulatorMesaQsri||unityUnusedAssetDetail||source.indexOf('egl_emulation')>=0||source.indexOf('openglrenderer')>=0||source.indexOf('hostconnection')>=0||source.indexOf('gralloc')>=0||source.indexOf('bufferqueue')>=0||source.indexOf('graphicbuffer')>=0||source.indexOf(' hwui')>=0||message.indexOf('app_time_stats:')>=0;
+}
+function logIsUnityStackLine(line){
+  var tag=(line.tag||'').toLowerCase(),message=(line.message||line.raw||'').trim();
+  if(tag!=='unity')return false;
+  return /^(?:at\s+)?[A-Za-z_$<][\w.$+<>`]*(?::|\.)[A-Za-z_$<][\w$<>`]*\([^)]*\)(?:\s+\[0x[0-9a-f]+\].*)?$/i.test(message)||/^\(Filename:.*Line:\s*\d+\)$/i.test(message)||/^--- End of stack trace/i.test(message);
+}
+function logLevelLabel(level){return {V:'VERBOSE',D:'DEBUG',I:'INFO',W:'WARNING',E:'ERROR',F:'FATAL'}[level]||'未分类'}
+function logRenderLines(){
+  var el=document.getElementById('log-console');if(!el)return;
+  var query=(document.getElementById('log-search').value||'').toLowerCase(),level=document.getElementById('log-level').value,hideSystem=document.getElementById('log-hide-system').checked,hideUnityStack=document.getElementById('log-hide-unity-stack').checked,rows=[],hidden=0,hiddenStack=0;
+  for(var i=0;i<logLines.length;i++){var line=logLines[i],lineLevel=(line.level||'').charAt(0).toUpperCase();if(hideSystem&&logIsSystemNoise(line)){hidden++;continue}if(hideUnityStack&&logIsUnityStackLine(line)){hiddenStack++;continue}if(level&&lineLevel!==level)continue;if(query&&(line.raw||line.message||'').toLowerCase().indexOf(query)<0)continue;rows.push(line)}
+  document.getElementById('log-hidden-count').textContent=hideSystem&&hidden?String(hidden):'';document.getElementById('log-hidden-stack-count').textContent=hideUnityStack&&hiddenStack?String(hiddenStack):'';
+  rows=rows.slice(-5000);if(!rows.length){var hiddenTotal=hidden+hiddenStack;el.innerHTML=hiddenTotal?uiState('empty','当前没有可见日志','日志已被显示过滤器隐藏，可关闭过滤选项查看'):logCurrentSession?uiState('loading','正在等待 App 日志','请继续操作当前 App'):uiState('empty','尚未开始抓取','选择 USB 设备和 App 后开始抓取');return}
+  el.innerHTML=rows.map(function(line){var level=(line.level||'').charAt(0).toUpperCase(),source=[line.process,line.tag].filter(Boolean).join('/');return '<div class="log-line level-'+esc(level)+'"><span class="time">'+esc(line.time||'')+'</span><span class="log-level-badge">'+esc(logLevelLabel(level))+'</span><span class="proc">'+esc(source)+'</span> '+esc(line.message||line.raw||'')+'</div>'}).join('');
+  if(document.getElementById('log-autoscroll').checked)el.scrollTop=el.scrollHeight
+}
+async function logLoadHistory(){
+  var body=document.getElementById('log-history-body');if(!body)return;
+  try{var result=await api('/api/log-capture/sessions'),rows=result.sessions||[],clearButton=document.getElementById('log-clear-history'),activeId=logCurrentSession&&['starting','waiting','running'].indexOf(logCurrentSession.status)>=0?logCurrentSession.id:'';document.getElementById('log-total-size').textContent='共 '+logFormatBytes(result.total_size);if(clearButton)clearButton.disabled=!rows.some(function(session){return session.id!==activeId});body.innerHTML=rows.length?rows.map(function(session){return '<tr><td><strong>'+esc(session.app_name||session.app_id)+'</strong><br><span style="color:var(--text3)">'+esc((session.platform||'')+' · '+(session.started_at||''))+'</span></td><td>'+logFormatBytes(session.size)+'</td><td><button class="btn btn-secondary btn-sm" data-log-download="'+esc(session.id)+'">下载</button> <button class="btn btn-secondary btn-sm" data-log-delete="'+esc(session.id)+'">删除</button></td></tr>'}).join(''):'<tr><td colspan="3">'+uiState('empty','暂无历史会话','完成一次日志抓取后会保存在这里')+'</td></tr>';var downloads=body.querySelectorAll('[data-log-download]');for(var i=0;i<downloads.length;i++)downloads[i].addEventListener('click',function(){window.location.href='/api/log-capture/sessions/'+encodeURIComponent(this.getAttribute('data-log-download'))+'/download'});var deletes=body.querySelectorAll('[data-log-delete]');for(var j=0;j<deletes.length;j++)deletes[j].addEventListener('click',function(){logDeleteSession(this.getAttribute('data-log-delete'))})}catch(e){body.innerHTML='<tr><td colspan="3">'+uiState('error','历史会话读取失败',e.message)+'</td></tr>'}
+}
+async function logDeleteSession(id){if(!confirm('确定永久删除这次日志会话吗？'))return;try{await api('/api/log-capture/sessions/'+encodeURIComponent(id),'DELETE');await logLoadHistory();toast('日志会话已删除')}catch(e){toast('删除失败：'+e.message,false)}}
+async function logClearHistory(){
+  if(!confirm('确定永久清理全部历史日志吗？正在抓取的当前会话会保留，此操作无法撤销。'))return;
+  var button=document.getElementById('log-clear-history');if(button){button.disabled=true;button.textContent='清理中...'}
+  try{var result=await api('/api/log-capture/sessions','DELETE');await logLoadHistory();toast(result.deleted_count?'已清理 '+result.deleted_count+' 个历史会话':'没有可清理的历史会话')}
+  catch(e){toast('清理失败：'+e.message,false)}
+  finally{if(button){button.textContent='清理全部'}}
+}
+
+const statusLabels={draft:'分析中',preview_ready:'待确认',analysis_failed:'分析失败',confirmed:'提交中',submission_failed:'提交失败',submitted:'已提交'};
+async function loadQueue(){
+  const el=document.getElementById('bug-queue-list');if(!el)return;
+  el.innerHTML=uiState('loading','正在加载 Bug 记录','');
+  try{
+    const rows=await api('/api/bug/queue');
+    if(!rows.length){el.innerHTML=uiState('empty','暂无本地 Bug 记录','提交或保存 Bug 后会显示在这里');return}
+    el.innerHTML=rows.map(r=>'<div style="padding:8px 0;border-top:1px solid rgba(255,255,255,.08)">'+
+      '<div style="color:var(--text)">'+esc(r.brief||r.id)+'</div>'+
+      '<div style="display:flex;gap:6px;align-items:center;margin-top:5px"><span>'+esc(statusLabels[r.status]||r.status)+'</span>'+
+      ((r.status==='analysis_failed'||r.status==='submission_failed'||r.status==='pending_submit')?'<button class="btn btn-sm btn-secondary" onclick="retryBug(\''+encodeURIComponent(r.id)+'\')">重试</button>':'')+
+      '<button class="btn btn-sm btn-secondary" onclick="deleteQueueBug(\''+encodeURIComponent(r.id)+'\')">删除</button></div></div>').join('');
+  }catch(e){el.innerHTML=uiState('error','Bug 记录加载失败',e.message,'<button class="btn btn-sm btn-primary" onclick="loadQueue()">重试</button>')}
+}
+// ===== 打点测试 =====
+var eventSpecEvents={},eventSpecByEvent={},eventSpecConsistencyIssues=[];
+async function loadEventSpec(){
+  const s=await api('/api/events/spec');
+  eventSpecEvents={};eventSpecByEvent=s.event_fields||{};eventSpecConsistencyIssues=s.consistency_issues||[];
+  for(var name in (s.events||{}))eventSpecEvents[name]=s.events[name]||'';
+  labRenderAll()
+}
+loadEventSpec().catch(function(){});
+async function startEventCapture(){
+  // Codex 内嵌浏览器在少数情况下会把本地 fetch POST 响应报成
+  // "Load failed"。开始抓取是幂等操作，使用 sendBeacon 发送后再通过
+  // GET 状态确认，可以完全避开对 POST 响应的依赖。
+  if(navigator.sendBeacon){
+    var sent=navigator.sendBeacon('/api/events/start','{}');
+    if(sent){
+      for(var i=0;i<6;i++){
+        await new Promise(function(resolve){setTimeout(resolve,150)});
+        try{var state=await api('/api/events');if(state.running)return state}catch(e){}
+      }
+    }
+  }
+  return api('/api/events/start','POST',{})
+}
+var labPollTimer=null,labCursor=0,labEvents=[],labSelected=null,labRunning=false,labHasStarted=false,labEventFilters=[],labParamFilters=[],labBugGeneratingKey='',labShowCommonParams=false,labCaptureAction='';
+function labValue(prop){return prop&&typeof prop==='object'&&'value' in prop?prop.value:prop}
+function labValueText(prop){
+  var value=labValue(prop);
+  if(value===undefined)return '—';
+  if(value===null)return 'null';
+  if(typeof value==='object'){try{return JSON.stringify(value)}catch(e){return String(value)}}
+  return String(value)
+}
+function labEventTimeRaw(event){return event&&(event.event_time||(event.raw&&event.raw['#time'])||event.ts)||''}
+function labEventTimeText(event){
+  var raw=String(labEventTimeRaw(event)),match=raw.match(/(\d{2}:\d{2}:\d{2})(?:[.,](\d{1,3}))?/);
+  if(!match)return raw;
+  return match[1]+'.'+String(match[2]||'000').padEnd(3,'0')
+}
+function labEventTimeMs(event){
+  var raw=String(labEventTimeRaw(event)),value=Date.parse(raw.indexOf(' ')>=0?raw.replace(' ','T'):raw);
+  return Number.isFinite(value)?value:0
+}
+function labSortEvents(){
+  labEvents.sort(function(a,b){
+    var timeDiff=labEventTimeMs(b)-labEventTimeMs(a);
+    return timeDiff||((Number(b.cursor)||0)-(Number(a.cursor)||0))
+  })
+}
+function labTypeValid(value,type){
+  var t=(type||'').trim().toUpperCase();
+  if(!t)return true;
+  if(t==='INT'||t==='LONG')return typeof value==='number'&&Number.isInteger(value);
+  if(t==='FLOAT')return typeof value==='number'&&Number.isFinite(value);
+  if(t==='STRING')return typeof value==='string';
+  if(t.indexOf('ARRAY_')===0)return Array.isArray(value);
+  if(t==='对象组')return Array.isArray(value)||(value!==null&&typeof value==='object');
+  return true
+}
+function labSpecConflictsForEvent(eventName){
+  return eventSpecConsistencyIssues.filter(function(conflict){
+    return (conflict.events||[]).some(function(item){return item.event===eventName})
+  })
+}
+function labEvaluate(e){
+  var result={status:'pass',errors:0,warns:0,rows:[],issues:[],ignored:0};
+  if(!e)return result;
+  var name=e.event_name||'',props=e.properties||{};
+  if(name==='cp'){
+    var standaloneCpFields=eventSpecByEvent.cp||{};
+    for(var standaloneCpField in props){
+      var standaloneCpSpec=standaloneCpFields[standaloneCpField]||{};
+      result.ignored++;
+      if(labShowCommonParams)result.rows.push({level:'pass',field:standaloneCpField,value:labValueText(props[standaloneCpField]),valueDesc:standaloneCpSpec.value_desc||'',type:standaloneCpSpec.type||'—',desc:standaloneCpSpec.desc||'',label:'公参'});
+    }
+    result.status='pass';return result
+  }
+  if(!Object.prototype.hasOwnProperty.call(eventSpecEvents,name)){
+    result.status='error';result.errors=1;
+    result.issues.push({level:'error',event:name,field:'',msg:'事件名与规范不完全一致'});
+    return result
+  }
+  var expected=eventSpecByEvent[name]||{},cpFields=eventSpecByEvent.cp||{};
+  for(var field in expected){
+    var spec=expected[field]||{},has=Object.prototype.hasOwnProperty.call(props,field);
+    if(!has){
+      result.warns++;result.rows.push({level:'warn',field:field,value:'—',valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'缺失'});
+      result.issues.push({level:'warn',event:name,field:field,msg:'规范参数未上报'});
+    }else{
+      var actual=labValue(props[field]);
+      if(labTypeValid(actual,spec.type||''))result.rows.push({level:'pass',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'通过'});
+      else{
+        result.errors++;result.rows.push({level:'error',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'类型错误'});
+        result.issues.push({level:'error',event:name,field:field,msg:'应为 '+String(spec.type||'规定类型')+'，实际值 '+labValueText(props[field])})
+      }
+    }
+  }
+  for(var actualField in props){
+    if(Object.prototype.hasOwnProperty.call(cpFields,actualField)){
+      var cpSpec=cpFields[actualField]||{};
+      result.ignored++;
+      if(labShowCommonParams)result.rows.push({level:'pass',field:actualField,value:labValueText(props[actualField]),valueDesc:cpSpec.value_desc||'',type:cpSpec.type||'—',desc:cpSpec.desc||'',label:'公参'});
+      continue
+    }
+    if(!Object.prototype.hasOwnProperty.call(expected,actualField)){
+      result.errors++;result.rows.push({level:'error',field:actualField,value:labValueText(props[actualField]),type:'—',desc:'该参数不属于当前事件',label:'多余参数'});
+      result.issues.push({level:'error',event:name,field:actualField,msg:'参数不属于事件 '+name})
+    }
+  }
+  var specConflicts=labSpecConflictsForEvent(name);
+  for(var conflictIndex=0;conflictIndex<specConflicts.length;conflictIndex++){
+    var conflict=specConflicts[conflictIndex],matchedRow=false;
+    for(var rowIndex=0;rowIndex<result.rows.length;rowIndex++){
+      if(result.rows[rowIndex].field===conflict.field){
+        result.rows[rowIndex].level='error';result.rows[rowIndex].label='规范冲突';result.rows[rowIndex].desc=conflict.msg;matchedRow=true;break
+      }
+    }
+    if(!matchedRow)result.rows.push({level:'error',field:conflict.field,value:labValueText(props[conflict.field]),valueDesc:(expected[conflict.field]||{}).value_desc||'',type:(expected[conflict.field]||{}).type||'—',desc:conflict.msg,label:'规范冲突'});
+    result.errors++;result.issues.push({level:'error',event:name,field:conflict.field,msg:conflict.msg})
+  }
+  result.status=result.errors?'error':(result.warns?'warn':'pass');
+  return result
+}
+function labSearchInput(){labRenderSuggestions()}
+function labCapturedParamNames(){
+  var found={};
+  for(var i=0;i<labEvents.length;i++){
+    var props=labEvents[i].properties||{};
+    for(var name in props)found[name]=true
+  }
+  return Object.keys(found)
+}
+function labRenderSuggestions(){
+  var box=document.getElementById('lab-suggestions');if(!box)return;
+  var input=document.getElementById('lab-search'),query=(input.value||'').trim().toLowerCase();
+  if(!query){box.classList.remove('open');box.innerHTML='';return}
+  var matches=[];
+  for(var eventName in eventSpecEvents)if(eventName.toLowerCase().indexOf(query)>=0&&labEventFilters.indexOf(eventName)<0)matches.push({kind:'event',name:eventName,isCommon:false});
+  var capturedParams=labCapturedParamNames(),cpFields=eventSpecByEvent.cp||{};
+  for(var i=0;i<capturedParams.length;i++){
+    var paramName=capturedParams[i];
+    if(paramName.toLowerCase().indexOf(query)>=0&&labParamFilters.indexOf(paramName)<0)matches.push({kind:'param',name:paramName,isCommon:Object.prototype.hasOwnProperty.call(cpFields,paramName)})
+  }
+  matches.sort(function(a,b){var ap=a.name.toLowerCase().indexOf(query)===0?0:1,bp=b.name.toLowerCase().indexOf(query)===0?0:1;return ap-bp||(a.kind===b.kind?0:(a.kind==='event'?-1:1))||a.name.localeCompare(b.name)});
+  if(!matches.length)box.innerHTML='<div style="padding:12px;color:var(--text3);font-size:12px">没有匹配的事件或已抓取参数</div>';
+  else box.innerHTML=matches.map(function(item){var label=item.kind==='event'?'事件':(item.isCommon?'公参':'参数'),kindClass=item.kind==='event'?'':(item.isCommon?' common':' param');return '<button type="button" class="event-suggestion" role="option" data-lab-kind="'+item.kind+'" data-lab-name="'+esc(item.name)+'"><span class="event-suggestion-name"><span class="event-suggestion-kind'+kindClass+'">'+label+'</span>'+esc(item.name)+'</span></button>'}).join('');
+  var options=box.querySelectorAll('[data-lab-kind]');for(var optionIndex=0;optionIndex<options.length;optionIndex++)options[optionIndex].addEventListener('click',function(){labSelectFilter(this.getAttribute('data-lab-kind'),this.getAttribute('data-lab-name'))});
+  box.classList.add('open')
+}
+function labHideSuggestions(){setTimeout(function(){var box=document.getElementById('lab-suggestions');if(box)box.classList.remove('open')},120)}
+function labSelectFilter(kind,name){
+  var filters=kind==='param'?labParamFilters:labEventFilters;
+  if(filters.indexOf(name)<0)filters.push(name);
+  document.getElementById('lab-search').value='';document.getElementById('lab-suggestions').classList.remove('open');labRenderFilterChips();labRenderStream()
+}
+function labRemoveFilter(kind,name){
+  if(kind==='param')labParamFilters=labParamFilters.filter(function(item){return item!==name});
+  else labEventFilters=labEventFilters.filter(function(item){return item!==name});
+  labRenderFilterChips();labRenderStream()
+}
+function labRenderFilterChips(){
+  var el=document.getElementById('lab-filter-chips');if(!el)return;
+  var cpFields=eventSpecByEvent.cp||{},html='';
+  html+=labEventFilters.map(function(name){return '<span class="lab-filter-chip"><span class="lab-filter-kind">事件</span>'+esc(name)+'<button type="button" aria-label="移除事件 '+esc(name)+'" data-lab-remove-kind="event" data-lab-remove-name="'+esc(name)+'">×</button></span>'}).join('');
+  html+=labParamFilters.map(function(name){var isCommon=Object.prototype.hasOwnProperty.call(cpFields,name),chipClass=isCommon?' common':' param',label=isCommon?'公参':'参数';return '<span class="lab-filter-chip'+chipClass+'"><span class="lab-filter-kind">'+label+'</span>'+esc(name)+'<button type="button" aria-label="移除'+label+' '+esc(name)+'" data-lab-remove-kind="param" data-lab-remove-name="'+esc(name)+'">×</button></span>'}).join('');
+  el.innerHTML=html;
+  var buttons=el.querySelectorAll('[data-lab-remove-kind]');for(var i=0;i<buttons.length;i++)buttons[i].addEventListener('click',function(){labRemoveFilter(this.getAttribute('data-lab-remove-kind'),this.getAttribute('data-lab-remove-name'))})
+}
+function labClearFilter(){
+  var input=document.getElementById('lab-search');if(input)input.value='';
+  var box=document.getElementById('lab-suggestions');if(box){box.classList.remove('open');box.innerHTML=''}
+  labEventFilters=[];labParamFilters=[];labRenderFilterChips();labRenderStream();if(input)input.focus()
+}
+async function labStart(){
+  try{
+    labCaptureAction='starting';labRenderHeader();
+    await startEventCapture();labRunning=true;labHasStarted=true;labRenderAll();labPoll()
+  }catch(e){toast(e.message,false)}
+  finally{labCaptureAction='';labRenderHeader()}
+}
+async function labStop(){
+  try{labCaptureAction='stopping';labRenderHeader();await api('/api/events/stop','POST');labRunning=false;if(labPollTimer)clearTimeout(labPollTimer);labRenderAll()}catch(e){toast(e.message,false)}
+  finally{labCaptureAction='';labRenderHeader()}
+}
+function labToggleCapture(){if(labCaptureAction)return;if(labRunning)labStop();else labStart()}
+async function labClear(){
+  try{
+    var cleared=await api('/api/events/clear','POST');labEvents=[];labCursor=cleared.cursor||0;labSelected=null;labRenderAll()
+  }catch(e){toast(e.message,false)}
+}
+async function labPoll(){
+  if(!labRunning)return;
+  try{
+    var r=await api('/api/events?after='+encodeURIComponent(labCursor));
+    if(r.events&&r.events.length){
+      for(var i=r.events.length-1;i>=0;i--)labEvents.unshift(r.events[i])
+      labSortEvents()
+    }
+    if(r.cursor!==undefined)labCursor=r.cursor;
+    if(r.running===false){labRunning=false;labRenderAll();return}
+    labRenderAll()
+  }catch(e){}
+  labPollTimer=setTimeout(labPoll,1000)
+}
+function labSelectCaptured(index){labSelected=labEvents[index];labRenderAll()}
+function labToggleCommonParams(){labShowCommonParams=!labShowCommonParams;labRenderAll()}
+function labRenderHeader(){
+  var toggle=document.getElementById('lab-capture-toggle');
+  if(toggle){toggle.disabled=!!labCaptureAction;toggle.className='btn btn-sm '+(labRunning?'btn-danger':'btn-green');toggle.textContent=labCaptureAction==='starting'?'正在启动...':labCaptureAction==='stopping'?'正在停止...':labRunning?'■ 停止抓取':'▶ 开始抓取'}
+  document.getElementById('lab-count').textContent=labEvents.length+' 条事件';
+  var status=document.getElementById('lab-run-status');
+  if(labCaptureAction){status.textContent=labCaptureAction==='starting'?'正在启动':'正在停止';status.style.color='var(--accent2)'}else if(labRunning){status.textContent='● 抓取中';status.style.color='var(--green)'}else{status.textContent=labHasStarted?'已停止':'未启动';status.style.color='var(--text3)'}
+}
+function labRenderStream(){
+  var el=document.getElementById('lab-stream');if(!el)return;
+  if(!labEvents.length){el.innerHTML=labRunning?uiState('loading','正在监听打点事件','请继续操作模拟器'):uiState('empty',labHasStarted?'暂无打点事件':'尚未开始抓取',labHasStarted?'本次会话还没有收到事件':'开始抓取后操作模拟器');return}
+  var html='';
+  for(var i=0;i<labEvents.length;i++){
+    var e=labEvents[i],props=e.properties||{},matchesParams=true;
+    if(labEventFilters.length&&labEventFilters.indexOf(e.event_name||'')<0)continue;
+    for(var paramIndex=0;paramIndex<labParamFilters.length;paramIndex++)if(!Object.prototype.hasOwnProperty.call(props,labParamFilters[paramIndex])){matchesParams=false;break}
+    if(!matchesParams)continue;
+    var result=labEvaluate(e),selected=labSelected===e?' selected':'';
+    var summary=e.event_name==='cp'?'公共参数已忽略':(result.errors?result.errors+' 错误':(result.warns?result.warns+' 警告':'校验通过'));
+    html+='<div class="lab-stream-row '+result.status+selected+'" onclick="labSelectCaptured('+i+')"><div class="lab-row-main"><span class="lab-row-name">'+esc(e.event_name||'(空事件名)')+'</span><span class="lab-row-time">'+esc(labEventTimeText(e))+'</span></div><div class="lab-row-result">'+esc(summary)+'</div></div>'
+  }
+  el.innerHTML=html||uiState('empty','没有匹配的抓取记录','请调整事件或参数筛选条件')
+}
+function labRenderResult(){
+  var verdict=document.getElementById('lab-verdict'),body=document.getElementById('lab-param-body'),meta=document.getElementById('lab-selected-meta'),commonToggle=document.getElementById('lab-common-toggle');if(!verdict||!body)return;
+  if(commonToggle){commonToggle.textContent=labShowCommonParams?'隐藏公参':'显示公参';commonToggle.setAttribute('aria-pressed',labShowCommonParams?'true':'false')}
+  var event=labSelected;
+  if(!event){
+    verdict.className='lab-verdict';verdict.innerHTML='<div class="lab-verdict-icon">👈</div><div><div class="lab-verdict-title">请选择一条事件</div><div class="lab-verdict-sub">点击左侧记录查看参数和校验结果</div></div>';body.innerHTML='<tr><td colspan="5"><div class="event-empty" style="padding:42px 12px">暂无参数数据</div></td></tr>';meta.textContent='';return
+  }
+  var result=labEvaluate(event),icon=result.status==='error'?'❌':(result.status==='warn'?'⚠️':'✅'),title=result.status==='error'?'校验失败':(result.status==='warn'?'事件已触发，存在缺失参数':'事件已触发，校验通过');
+  verdict.className='lab-verdict '+result.status;verdict.innerHTML='<div class="lab-verdict-icon">'+icon+'</div><div><div class="lab-verdict-title">'+title+'</div><div class="lab-verdict-sub">'+result.errors+' 个错误，'+result.warns+' 个警告'+(result.ignored?'，'+(labShowCommonParams?'已显示 ':'已隐藏 ')+result.ignored+' 个公参':'')+'</div></div>';
+  body.innerHTML=labRowsHtml(result.rows,result.ignored);meta.textContent=(event.event_name||'')+' · '+labEventTimeText(event)
+}
+function labRowsHtml(rows,commonCount){
+  if(!rows.length)return '<tr><td colspan="5"><div class="event-empty" style="padding:38px 12px">'+(commonCount&&!labShowCommonParams?'公参已隐藏，点击“显示公参”查看':'该事件没有规定业务参数')+'</div></td></tr>';
+  return rows.map(function(row){var desc=esc(row.desc||'—'),valueDesc=row.valueDesc?'<div style="margin-top:6px;color:var(--text);white-space:pre-line">取值：\n'+esc(row.valueDesc)+'</div>':'';return '<tr><td><span class="lab-badge '+row.level+'">'+esc(row.label)+'</span></td><td class="lab-field-name">'+esc(row.field)+'</td><td class="lab-field-value">'+esc(String(row.value))+'</td><td>'+esc(String(row.type))+'</td><td style="color:var(--text2);white-space:pre-line">'+desc+valueDesc+'</td></tr>'}).join('')
+}
+function labSelectProblem(index){
+  labSelected=labEvents[index];labRenderAll();
+  var detail=document.getElementById('lab-verdict');if(detail)detail.scrollIntoView({behavior:'smooth',block:'center'})
+}
+function labEventBugKey(event){return String((event&&event.cursor)||labEventTimeRaw(event)+'|'+(event&&event.event_name||''))}
+function labIssueRow(result,issue){
+  for(var i=0;i<result.rows.length;i++)if(result.rows[i].field===issue.field&&result.rows[i].level===issue.level)return result.rows[i];
+  for(var j=0;j<result.rows.length;j++)if(result.rows[j].field===issue.field)return result.rows[j];
+  return null
+}
+function labIssueTitleReason(result,issue){
+  if(!issue.field)return '事件名错误';
+  var row=labIssueRow(result,issue);if(!row)return '校验错误';
+  if(row.label==='缺失')return '参数缺失';
+  if(row.label==='多余参数')return '参数不属于该事件';
+  return row.label||'校验错误'
+}
+function labBuildBugPreview(event,index){
+  var result=labEvaluate(event),name=event.event_name||'(空事件名)',firstIssue=null;
+  for(var i=0;i<result.issues.length;i++)if(result.issues[i].level==='error'){firstIssue=result.issues[i];break}
+  if(!firstIssue)firstIssue=result.issues[0]||{field:'',msg:'校验异常'};
+  var title='【打点】事件名：'+name+'，'+(firstIssue.field?'参数'+firstIssue.field+'，':'')+labIssueTitleReason(result,firstIssue);
+  var lines=['【打点校验问题】','事件名：'+name,'事件时间：'+labEventTimeText(event),'记录序号：第 '+(labEvents.length-index)+' 条','校验结果：'+result.errors+' 个错误，'+result.warns+' 个警告','','问题详情：'];
+  for(var j=0;j<result.issues.length;j++){
+    var issue=result.issues[j],row=labIssueRow(result,issue),level=issue.level==='error'?'错误':'警告';
+    lines.push((j+1)+'. ['+level+']'+(issue.field?' 参数：'+issue.field:' 事件名：'+name));
+    if(issue.field){lines.push('   实际值：'+(row?row.value:'—'));if(row&&row.valueDesc)lines.push('   实际值说明：'+row.valueDesc);lines.push('   规范类型：'+(row?row.type:'—'))}
+    lines.push('   原因：'+issue.msg)
+  }
+  return {title:title,description:lines.join('\n')}
+}
+function labShowExistingBug(existing){
+  switchTab('bug');
+  if(existing&&existing.status==='preview_ready'&&existing.preview)showPreview(existing);
+  else if(existing&&existing.status==='analysis_failed')showAnalysisFailure(existing);
+  else{showBugAnalyzing();toast('已有 Bug 正在处理中，请先完成当前 Bug',false)}
+}
+async function labBugSlotAvailable(){
+  if(!currentBugId)return true;
+  var existing;
+  try{existing=await api('/api/bug/queue/'+encodeURIComponent(currentBugId))}catch(checkError){toast('无法检查当前 Bug：'+checkError.message,false);return false}
+  if(existing&&existing.status!=='submitted'){labShowExistingBug(existing);return false}
+  currentBugId=null;previewData=null;eventBugPreview=null;sessionStorage.removeItem('currentBugId');sessionStorage.removeItem('eventBugPreview');return true
+}
+async function labSaveGeneratedBug(generated,successMessage){
+  var assignee=document.getElementById('bug-assignee').value.trim()||'萌虎';
+  setMode('detail');
+  var preview={title:generated.title,description:generated.description,module:'打点',severity:'2',priority:'1'};
+  var saved=await api('/api/bug/save','POST',{brief:generated.title,assignee:assignee,mode:'scripted',preview:preview});
+  currentBugId=saved.id;sessionStorage.setItem('currentBugId',saved.id);
+  generated.bugId=saved.id;eventBugPreview=generated;sessionStorage.setItem('eventBugPreview',JSON.stringify(generated));
+  document.getElementById('bug-brief').value=generated.title;
+  var bug=await api('/api/bug/queue/'+encodeURIComponent(saved.id));
+  switchTab('bug');showPreview(bug);toast(successMessage)
+}
+async function labGenerateBug(clickEvent,index){
+  if(clickEvent)clickEvent.stopPropagation();
+  var event=labEvents[index];if(!event)return;
+  var key=labEventBugKey(event);if(labBugGeneratingKey)return;
+  labBugGeneratingKey=key;labRenderProblems();
+  try{
+    if(!await labBugSlotAvailable())return;
+    await labSaveGeneratedBug(labBuildBugPreview(event,index),'打点 Bug 预览已生成')
+  }catch(e){toast('生成 Bug 失败：'+e.message,false)}
+  finally{labBugGeneratingKey='';labRenderProblems()}
+}
+function labBuildSpecBugPreview(specIssue){
+  var field=specIssue.field||'未知字段',lines=['【打点规范一致性问题】','字段名：'+field,'问题：'+(specIssue.msg||'同名字段类型不一致'),'','涉及事件及类型：'];
+  for(var i=0;i<(specIssue.events||[]).length;i++)lines.push((i+1)+'. '+specIssue.events[i].event+'：'+(specIssue.events[i].type||'未填写'));
+  return {title:'【打点规范】字段：'+field+'，类型不一致',description:lines.join('\n')}
+}
+async function labGenerateSpecBug(clickEvent,index){
+  if(clickEvent)clickEvent.stopPropagation();
+  var specIssue=eventSpecConsistencyIssues[index];if(!specIssue||labBugGeneratingKey)return;
+  labBugGeneratingKey='spec:'+String(specIssue.field||index);labRenderProblems();
+  try{
+    if(!await labBugSlotAvailable())return;
+    await labSaveGeneratedBug(labBuildSpecBugPreview(specIssue),'规范 Bug 预览已生成')
+  }catch(e){toast('生成 Bug 失败：'+e.message,false)}
+  finally{labBugGeneratingKey='';labRenderProblems()}
+}
+function labRenderProblems(){
+  var list=document.getElementById('lab-problem-list'),count=document.getElementById('lab-problem-count');if(!list||!count)return;
+  var html='',problemCount=0,specCount=eventSpecConsistencyIssues.length;
+  for(var specIndex=0;specIndex<eventSpecConsistencyIssues.length;specIndex++){
+    var specIssue=eventSpecConsistencyIssues[specIndex],definitions=(specIssue.events||[]).map(function(item){return '<span class="lab-problem-issue error"><strong>'+esc(item.event)+'</strong> · '+esc(item.type||'未填写')+'</span>'}).join(''),specKey='spec:'+String(specIssue.field||specIndex),specGenerating=labBugGeneratingKey===specKey;
+    html+='<div class="lab-problem-row lab-spec-problem"><div class="lab-problem-head"><span class="lab-problem-name">规范错误 · '+esc(specIssue.field||'未知字段')+'</span><span class="lab-badge error">类型不一致</span><button type="button" class="btn btn-secondary lab-problem-bug" onclick="labGenerateSpecBug(event,'+specIndex+')" '+(labBugGeneratingKey?'disabled':'')+'>'+(specGenerating?'生成中...':'生成 Bug')+'</button><span class="lab-problem-meta">涉及 '+(specIssue.events||[]).length+' 个事件</span></div><div class="lab-problem-summary">'+definitions+'<span class="lab-problem-issue error">'+esc(specIssue.msg||'同名字段类型不一致')+'</span></div></div>'
+  }
+  if(!labEvents.length&&!specCount){count.textContent='0 条问题记录';list.innerHTML=labRunning?uiState('loading','正在检查打点问题','收到事件后自动汇总错误和警告'):uiState('empty','暂无打点问题','开始抓取后汇总所有错误和警告');return}
+  for(var i=0;i<labEvents.length;i++){
+    var event=labEvents[i],result=labEvaluate(event);if(!result.errors&&!result.warns)continue;
+    problemCount++;
+    var recordNo=labEvents.length-i,totals=[];
+    if(result.errors)totals.push(result.errors+' 错误');if(result.warns)totals.push(result.warns+' 警告');
+    var details=result.issues.map(function(issue){var field=issue.field?'<strong>'+esc(issue.field)+'</strong> · ':'';return '<span class="lab-problem-issue '+issue.level+'">'+field+esc(issue.msg)+'</span>'}).join('');
+    var bugKey=labEventBugKey(event),generating=labBugGeneratingKey===bugKey;
+    html+='<div class="lab-problem-row" onclick="labSelectProblem('+i+')"><div class="lab-problem-head"><span class="lab-problem-name">'+esc(event.event_name||'(空事件名)')+'</span><span class="lab-badge '+result.status+'">'+esc(totals.join(' / '))+'</span><button type="button" class="btn btn-secondary lab-problem-bug" onclick="labGenerateBug(event,'+i+')" '+(labBugGeneratingKey?'disabled':'')+'>'+(generating?'生成中...':'生成 Bug')+'</button><span class="lab-problem-meta">第 '+recordNo+' 条 · '+esc(labEventTimeText(event))+'</span></div><div class="lab-problem-summary">'+details+'</div></div>'
+  }
+  var totalProblems=problemCount+specCount;
+  count.textContent=totalProblems+' 条问题'+(specCount?'（'+specCount+' 条规范错误）':'');list.innerHTML=html||uiState('success','当前未发现打点问题','已检查 '+labEvents.length+' 条事件')
+}
+function labRenderAll(){
+  if(!document.getElementById('tab-eventlab'))return;
+  labRenderHeader();labRenderFilterChips();labRenderStream();labRenderResult();labRenderProblems()
+}
+async function updateSpec(source){
+  var fromLab=source==='lab',input=document.getElementById(fromLab?'lab-spec-url':'spec-url'),url=input.value.trim();
+  if(!url){toast('请输入飞书表格链接',false);return}
+  var el=document.getElementById(fromLab?'lab-spec-update-msg':'spec-update-msg');
+  var buttons=[document.getElementById('spec-update-btn'),document.getElementById('lab-spec-update-btn')];
+  for(var i=0;i<buttons.length;i++)if(buttons[i]){buttons[i].disabled=true;buttons[i].textContent='更新中...'}
+  el.style.color='var(--text3)';el.textContent='正在读取并校验飞书表格...';
+  try{
+    var r=await api('/api/events/spec/update','POST',{url:url});
+    await loadEventSpec();
+    var conflictCount=r.conflict_count||0,resultText='已从“'+r.sheet+'”更新 '+r.event_count+' 个事件、'+r.count+' 个字段'+(conflictCount?'，发现 '+conflictCount+' 个类型冲突':'，一致性校验通过');
+    var labInput=document.getElementById('lab-spec-url'),toolInput=document.getElementById('spec-url');if(labInput)labInput.value=url;if(toolInput)toolInput.value=url;
+    var messages=[document.getElementById('spec-update-msg'),document.getElementById('lab-spec-update-msg')];
+    for(var j=0;j<messages.length;j++)if(messages[j]){messages[j].style.color=conflictCount?'#e8b730':'var(--green)';messages[j].textContent=(conflictCount?'⚠️ ':'✅ ')+resultText}
+    toast(resultText)
+  }catch(e){el.style.color='var(--accent)';el.textContent='❌ '+e.message}
+  finally{
+    var toolButton=document.getElementById('spec-update-btn'),labButton=document.getElementById('lab-spec-update-btn');
+    if(toolButton){toolButton.disabled=false;toolButton.textContent='更新'}if(labButton){labButton.disabled=false;labButton.textContent='更新并校验'}
+  }
+}
+// ===== 打点测试 End =====
+
+async function retryBug(id){
+  const raw=decodeURIComponent(id);
+  try{await api('/api/bug/retry/'+encodeURIComponent(raw),'POST');toast('已开始重试');loadQueue();if(raw===currentBugId)startPolling()}catch(e){toast(e.message,false)}
+}
+async function deleteQueueBug(id){
+  try{await api('/api/bug/queue/'+id,'DELETE');toast('已删除本地记录');loadQueue()}catch(e){toast(e.message,false)}
+}
+
+// ============================================================
+// 用例生成
+// ============================================================
+let tcCases=[];
+function addTcCase(){tcCases.push({b:document.getElementById('tc-b').value,c:document.getElementById('tc-c').value,d:document.getElementById('tc-d').value,e:document.getElementById('tc-e').value,f:'',g:'',h:'',k:1,l:''});renderTcTable()}
+function removeTcCase(i){tcCases.splice(i,1);renderTcTable()}
+function clearAllTc(){tcCases=[];renderTcTable()}
+function renderTcTable(){document.getElementById('tc-count').textContent=tcCases.length;document.getElementById('tc-table-body').innerHTML=tcCases.map((c,i)=>'<tr><td>'+(i+1)+'</td>'+'<td><input value="'+esc(c.b)+'" onchange="tcCases['+i+'].b=this.value"></td>'+'<td><input value="'+esc(c.c)+'" onchange="tcCases['+i+'].c=this.value"></td>'+'<td><input value="'+esc(c.d)+'" onchange="tcCases['+i+'].d=this.value"></td>'+'<td><input value="'+esc(c.e)+'" onchange="tcCases['+i+'].e=this.value"></td>'+'<td><input value="'+esc(c.f)+'" onchange="tcCases['+i+'].f=this.value"></td>'+'<td><textarea rows="3" onchange="tcCases['+i+'].g=this.value">'+esc(c.g)+'</textarea></td>'+'<td><textarea rows="3" onchange="tcCases['+i+'].h=this.value">'+esc(c.h)+'</textarea></td>'+'<td><input value="'+c.k+'" style="width:40px" onchange="tcCases['+i+'].k=parseInt(this.value)||1"></td>'+'<td><input value="'+esc(c.l)+'" onchange="tcCases['+i+'].l=this.value"></td>'+'<td><button class="btn btn-sm btn-secondary" onclick="removeTcCase('+i+')">✕</button></td></tr>').join('')}
+
+// —— 登陆 ——
+function showLoginMask(){var m=document.getElementById('login-mask');if(m)m.style.display='flex'}
+function hideLoginMask(){var m=document.getElementById('login-mask');if(m)m.style.display='none'}
+async function checkLogin(){
+  try{
+    const r=await fetch('/api/auth/status');
+    const d=await r.json();
+    const st=document.getElementById('login-status');
+    const btn=document.getElementById('login-btn');
+    const out=document.getElementById('logout-btn');
+    if(d.logged_in&&d.user){
+      st.innerHTML='<span class="login-dot on"></span><span class="login-name">'+escHtml(d.user.name)+'</span>';
+      btn.style.display='none';
+      out.style.display='inline-block';
+      authUser=d.user;
+      hideLoginMask();
+    }else{
+      st.innerHTML='<span class="login-dot off"></span>未登陆';
+      btn.style.display='inline-block';
+      out.style.display='none';
+      authUser=null;
+      showLoginMask();
+    }
+  }catch(e){
+    document.getElementById('login-status').innerHTML='<span class="login-dot off"></span>离线';
+    showLoginMask();
+  }
+}
+async function doLogin(){
+  // 跳转飞书授权页，授权完成后回调服务器并回到首页自动登录
+  location.href='/api/auth/feishu-login';
+}
+async function doLogout(){
+  location.href='/api/auth/logout';
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+var authUser=null;
+checkLogin(); setInterval(checkLogin,60000);
+
+function generateXlsx(){
+  if(!tcCases.length){toast('请先添加用例',false);return}
+  const title=document.getElementById('tc-title').value.trim()||'未命名';
+  const headers=['编号','一级模块','二级模块','三级模块','四级模块','五级模块','操作步骤＆测试场景说明','期望结果','测试结果','测试确认','优先级','备注'];
+  const data=[headers];
+  tcCases.forEach((c,i)=>{
+    const hLines=c.h.split('\n').filter(l=>l.trim());
+    (hLines.length?hLines:['']).forEach((hline,hi)=>data.push([i+1,hi===0?c.b:'',hi===0?c.c:'',hi===0?c.d:'',hi===0?c.e:'',hi===0?c.f:'',hi===0?c.g:'',hline,'','',hi===0?c.k:'',hi===0?c.l:'']))
+  });
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:6},{wch:12},{wch:16},{wch:16},{wch:12},{wch:10},{wch:55},{wch:40},{wch:10},{wch:10},{wch:7},{wch:18}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'测试内容');
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([new Uint8Array(buf)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const fname=title.replace(/[\/\\]/g,'_')+'.xlsx';
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+  toast(' 已生成: '+fname);
+}
+</script>
+<div id="login-mask" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;text-align:center">
+  <div style="font-size:24px;font-weight:bold">🐯 萌虎测试平台</div>
+  <div style="color:var(--text2);font-size:13px">请使用飞书账号登录后使用</div>
+  <button class="btn btn-primary" onclick="location.href='/api/auth/feishu-login'" style="padding:10px 30px;font-size:14px">🔑 使用飞书登录</button>
+</div>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# 运行时数据（敏感/大文件，不上传）
+data/
+日志/
+*.log
+
+# 凭证 / 密钥（绝不提交）
+*credentials*
+*.pem
+*.key
+*secret*
+*token*.json
+
+# Claude 本地配置
+.claude/
+
+# 测试产物
+test_bug.json
+
+# 系统临时
+.DS_Store
+*.tmp

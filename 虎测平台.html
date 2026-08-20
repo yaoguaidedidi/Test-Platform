@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐯 萌虎测试平台 v1.5</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1a2e;--panel:#16213e;--input:#0f3460;--accent:#e94560;--accent2:#00b4d8;--green:#2ecc71;--text:#eee;--text2:#aaa;--text3:#666;--radius:6px;--font:-apple-system,'Segoe UI',sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+nav{display:flex;gap:4px;padding:12px 16px;background:var(--panel);border-bottom:2px solid var(--accent);align-items:center;position:sticky;top:0;z-index:100}
+nav .logo{font-size:18px;font-weight:bold;color:var(--accent);margin-right:20px}
+nav button{background:none;border:none;color:var(--text2);padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:14px;transition:all .2s}
+nav button:hover{color:var(--text);background:rgba(255,255,255,.05)}
+nav button.active{color:var(--accent);background:rgba(233,69,96,.1);font-weight:bold}
+main{max-width:1200px;margin:0 auto;padding:24px 16px}
+.tab{display:none}.tab.active{display:block}
+.card{background:var(--panel);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:var(--accent)}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--panel);border-radius:var(--radius);padding:16px 20px;text-align:center;border-left:3px solid var(--accent)}
+.stat-card .num{font-size:32px;font-weight:bold;color:var(--accent)}
+.stat-card .label{font-size:12px;color:var(--text2);margin-top:4px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #2a3a5c;border-radius:var(--radius);background:var(--input);color:var(--text);font-size:14px;font-family:var(--font)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical}
+.btn{padding:10px 20px;border:none;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.85}
+.btn-secondary{background:var(--input);color:var(--text);border:1px solid #2a3a5c}.btn-secondary:hover{border-color:var(--accent)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.85}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--input);padding:10px 12px;text-align:left;font-weight:600;color:var(--text2)}
+td{padding:10px 12px;border-bottom:1px solid #1e2d4a}
+.status{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.status-draft{background:rgba(255,255,255,.1);color:var(--text2)}
+.status-confirmed{background:rgba(46,204,113,.2);color:var(--green)}
+.status-submitted{background:rgba(233,69,96,.2);color:var(--accent)}
+.case-table{width:100%;font-size:13px;border-collapse:collapse}
+.case-table th{background:var(--input);padding:6px 8px;font-size:12px}
+.case-table td{padding:4px}
+.case-table td input,.case-table td textarea{padding:4px 6px;font-size:12px;min-height:auto}
+.case-table .col-id{width:40px}.case-table .col-p{width:50px}.case-table .col-g,.case-table .col-h{min-width:200px}
+.attach-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.attach-item{background:var(--input);padding:6px 12px;border-radius:var(--radius);font-size:12px;display:flex;align-items:center;gap:8px}
+.attach-item .remove{color:var(--accent);cursor:pointer;font-weight:bold}
+.toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:var(--radius);font-size:14px;color:#fff;animation:fadeIn .3s}
+.toast-success{background:var(--green)}.toast-error{background:var(--accent)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.preview-panel{background:#0a0e1a;border:1px solid #2a3a5c;border-radius:var(--radius);padding:16px;margin-top:12px;white-space:pre-wrap;font-family:var(--font);font-size:13px;line-height:1.6}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(2,1fr)}nav{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">🐯 萌虎测试平台 v1.5</span>
+  <button onclick="switchTab('dashboard')" id="nav-dashboard" class="active">首页</button>
+  <button onclick="switchTab('testcase')" id="nav-testcase">用例生成</button>
+  <button onclick="switchTab('bug')" id="nav-bug">Bug提交</button>
+  <button onclick="switchTab('queue')" id="nav-queue">队列</button>
+</nav>
+
+<main>
+
+<!-- 首页 -->
+<div id="tab-dashboard" class="tab active">
+  <div class="stats-row" id="stats-row"></div>
+  <div class="card"><h2>📋 快捷操作</h2>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="switchTab('testcase')">生成测试用例</button>
+      <button class="btn btn-secondary" onclick="switchTab('bug')">提交 Bug</button>
+      <button class="btn btn-secondary" onclick="switchTab('queue')">查看队列</button>
+    </div>
+  </div>
+</div>
+
+<!-- 用例生成 -->
+<div id="tab-testcase" class="tab">
+  <div class="card">
+    <h2>📝 用例信息</h2>
+    <div class="two-col">
+      <div class="form-group"><label>标题</label><input type="text" id="tc-title" placeholder="如：特殊障碍测试用例_浮木"></div>
+      <div class="form-group"><label>保存路径（留空用浏览器默认下载目录）</label><input type="text" id="tc-path" placeholder="/Users/hh/work/测试用例/"></div>
+    </div>
+    <div class="two-col">
+      <div class="form-group"><label>一级模块 B</label><input type="text" id="tc-b" placeholder="如：浮木"></div>
+      <div class="form-group"><label>二级模块 C</label><input type="text" id="tc-c" placeholder="如：UI表现"></div>
+    </div>
+    <div class="two-col">
+      <div class="form-group"><label>三级模块 D</label><input type="text" id="tc-d" placeholder="可选"></div>
+      <div class="form-group"><label>四级模块 E</label><input type="text" id="tc-e" placeholder="可选"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="addTcCase()" style="width:100%">+ 添加用例（基于上述模块）</button>
+  </div>
+  <div class="card">
+    <h2>📋 用例列表 (<span id="tc-count">0</span>条)</h2>
+    <div style="overflow-x:auto">
+      <table class="case-table">
+        <thead><tr><th class="col-id">#</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th class="col-g">操作步骤</th><th class="col-h">期望结果(\n分隔)</th><th class="col-p">优先级</th><th>备注</th><th></th></tr></thead>
+        <tbody id="tc-table-body"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="generateXlsx()">生成 xlsx</button>
+      <button class="btn btn-secondary" onclick="clearAllTc()">清空</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bug提交 -->
+<div id="tab-bug" class="tab">
+  <div class="two-col">
+    <div class="card">
+      <h2>🐛 提交 Bug</h2>
+      <div class="form-group">
+        <label>附件（截图/视频/日志，多选，将上传到飞书相关附件）</label>
+        <input type="file" id="bug-files" multiple accept="image/*,video/*,.txt,.log,.zip,.gz,.tar" onchange="onBugFilesChange()">
+        <div class="attach-list" id="bug-attach-list"></div>
+      </div>
+      <div class="form-group">
+        <label>简述</label>
+        <textarea id="bug-brief" rows="3" placeholder="简单描述你遇到的问题，模块/严重程度/优先级自动判断"></textarea>
+      </div>
+      <div class="form-group">
+        <label>经办人</label>
+        <input type="text" id="bug-assignee" placeholder="输入经办人姓名" value="萌虎">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="executeBug()">🚀 执行</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>👁 预览（可编辑）</h2>
+      <div id="bug-preview-status" style="font-size:11px;color:var(--text3);margin-bottom:8px">填写表单后点击执行</div>
+      <div id="preview-editor" style="display:none">
+        <div class="form-group"><label>标题</label><input type="text" id="p-title"></div>
+        <div class="two-col">
+          <div class="form-group"><label>模块</label><input type="text" id="p-module"></div>
+          <div class="form-group"><label>经办人</label><input type="text" id="p-assignee"></div>
+        </div>
+        <div class="two-col">
+          <div class="form-group"><label>严重程度</label><select id="p-severity"><option value="1">严重</option><option value="2" selected>重要</option><option value="3">一般</option><option value="5">微小</option></select></div>
+          <div class="form-group"><label>优先级</label><select id="p-priority"><option value="0">P0</option><option value="1" selected>P1</option><option value="2">P2</option><option value="kvt5xvrgc">P3</option><option value="99">待定</option></select></div>
+        </div>
+        <div class="form-group"><label>完整描述（提交到飞书的 description 字段）</label><textarea id="p-description" rows="8"></textarea></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-green" id="btn-confirm" onclick="confirmAndSubmit()" disabled>✅ 确认提交</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 队列 -->
+<div id="tab-queue" class="tab">
+  <div class="card"><h2>📊 Bug 提交队列</h2>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>状态</th><th>标题</th><th>模块</th><th>简述</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="queue-tbody"><tr><td colspan="6" style="color:var(--text3)">加载中...</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ============================================================
+// Tab 切换
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='dashboard') loadStats();
+  if(name==='queue') loadQueue();
+}
+function toast(msg,ok=true){const t=document.createElement('div');t.className='toast '+(ok?'toast-success':'toast-error');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ============================================================
+// localStorage helpers
+// ============================================================
+const LS_KEY='hutest_bugs';
+function loadBugs(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]')}catch(e){return[]}}
+function saveBugs(bugs){localStorage.setItem(LS_KEY,JSON.stringify(bugs))}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+
+// ============================================================
+// 首页
+// ============================================================
+function loadStats(){
+  const bugs=loadBugs();
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-card"><div class="num">${bugs.filter(b=>b.status==='draft'||b.status==='confirmed').length}</div><div class="label">📝 待提交Bug</div></div>
+    <div class="stat-card"><div class="num">${bugs.filter(b=>b.status==='submitted').length}</div><div class="label">✅ 已提交Bug</div></div>
+    <div class="stat-card"><div class="num">${bugs.length}</div><div class="label">📊 队列总计</div></div>`;
+}
+
+// ============================================================
+// 用例生成 (纯前端 JS xlsx)
+// ============================================================
+let tcCases=[];
+
+function addTcCase(){
+  tcCases.push({b:document.getElementById('tc-b').value,c:document.getElementById('tc-c').value,d:document.getElementById('tc-d').value,e:document.getElementById('tc-e').value,f:'',g:'',h:'',k:1,l:''});
+  renderTcTable();
+}
+function removeTcCase(i){tcCases.splice(i,1);renderTcTable()}
+function clearAllTc(){tcCases=[];renderTcTable()}
+function renderTcTable(){
+  document.getElementById('tc-count').textContent=tcCases.length;
+  document.getElementById('tc-table-body').innerHTML=tcCases.map((c,i)=>
+    '<tr><td>'+(i+1)+'</td>'+
+    '<td><input value="'+esc(c.b)+'" onchange="tcCases['+i+'].b=this.value"></td>'+
+    '<td><input value="'+esc(c.c)+'" onchange="tcCases['+i+'].c=this.value"></td>'+
+    '<td><input value="'+esc(c.d)+'" onchange="tcCases['+i+'].d=this.value"></td>'+
+    '<td><input value="'+esc(c.e)+'" onchange="tcCases['+i+'].e=this.value"></td>'+
+    '<td><input value="'+esc(c.f)+'" onchange="tcCases['+i+'].f=this.value"></td>'+
+    '<td><textarea rows="3" onchange="tcCases['+i+'].g=this.value">'+esc(c.g)+'</textarea></td>'+
+    '<td><textarea rows="3" onchange="tcCases['+i+'].h=this.value">'+esc(c.h)+'</textarea></td>'+
+    '<td><input value="'+c.k+'" style="width:40px" onchange="tcCases['+i+'].k=parseInt(this.value)||1"></td>'+
+    '<td><input value="'+esc(c.l)+'" onchange="tcCases['+i+'].l=this.value"></td>'+
+    '<td><button class="btn btn-sm btn-secondary" onclick="removeTcCase('+i+')">✕</button></td></tr>'
+  ).join('');
+}
+
+function generateXlsx(){
+  if(!tcCases.length){toast('请先添加用例',false);return}
+  const title=document.getElementById('tc-title').value.trim()||'未命名';
+  const path=document.getElementById('tc-path').value.trim();
+
+  // 用 SheetJS 生成 xlsx
+  const headers=['编号','一级模块','二级模块','三级模块','四级模块','五级模块','操作步骤＆测试场景说明','期望结果','测试结果','测试确认','优先级','备注'];
+  const data=[headers];
+  tcCases.forEach((c,i)=>{
+    const hLines=c.h.split('\n').filter(l=>l.trim());
+    (hLines.length?hLines:['']).forEach((hline,hi)=>{
+      data.push([
+        i+1,
+        hi===0?c.b:'',hi===0?c.c:'',hi===0?c.d:'',hi===0?c.e:'',hi===0?c.f:'',
+        hi===0?c.g:'',hline, '', '', hi===0?c.k:'', hi===0?c.l:''
+      ]);
+    });
+  });
+
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  // 列宽
+  ws['!cols']=[{wch:6},{wch:12},{wch:16},{wch:16},{wch:12},{wch:10},{wch:55},{wch:40},{wch:10},{wch:10},{wch:7},{wch:18}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'测试内容');
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([new Uint8Array(buf)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+  const fname=title.replace(/[\/\\]/g,'_')+'.xlsx';
+  const fullPath=path?path.replace(/\/?$/, '/')+fname:fname;
+
+  // 尝试用 File System Access API 保存到指定路径
+  if(path&&window.showDirectoryPicker){
+    saveToPath(path,fname,blob);
+  }else{
+    // 降级为下载
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ 已生成，文件将下载到浏览器默认目录');
+  }
+}
+
+async function saveToPath(dirPath,fname,blob){
+  try{
+    // 先让用户选择一次目标目录
+    const handle=await getDirectoryHandle(dirPath);
+    const fileHandle=await handle.getFileHandle(fname,{create:true});
+    const writable=await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    toast('✅ 已保存: '+dirPath.replace(/\/?$/,'/')+fname);
+  }catch(e){
+    // 降级为下载
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+    URL.revokeObjectURL(url);
+    toast('⚠ 自动保存失败，已转为下载');
+  }
+}
+
+let dirHandleCache=null;
+async function getDirectoryHandle(dirPath){
+  if(dirHandleCache) return dirHandleCache;
+  // 需要用户手势，这里直接弹出选择器
+  dirHandleCache=await window.showDirectoryPicker({mode:'readwrite'});
+  return dirHandleCache;
+}
+
+// ============================================================
+// Bug 智能分析引擎（纯前端）
+// ============================================================
+const MODULE_KW={图鉴系统:['图鉴','红点','handbook'],生成器系统:['生成器','generator','掉落','队列','候补','问号','指针'],剧情系统:['剧情','引导','tutorial','对话','story'],账号系统:['账号','登录','注册'],热更新:['热更新','hotfix','覆盖'],浮木:['浮木'],游泳圈:['游泳圈','swim'],草雕:['草雕'],石雕:['石雕'],蜂蜜:['蜂蜜','honey'],鸟蛋:['鸟蛋','egg'],碎冰机:['碎冰机'],信箱:['信箱','mailbox'],颜色罐子:['罐子','颜色'],关联障碍:['关联障碍','障碍'],体力:['体力','stamina'],增益火箭:['增益火箭','火箭','rocket'],体力漂流瓶:['漂流瓶','bottle'],关联爆炸:['关联爆炸','爆炸','explosion']};
+
+function detectModule(brief){
+  for(const [mod,kws] of Object.entries(MODULE_KW))
+    for(const kw of kws) if(brief.toLowerCase().includes(kw.toLowerCase())) return mod;
+  return '';
+}
+
+function generateSmartPreview(brief,assignee){
+  const mod=detectModule(brief);
+  const title=mod?`【${mod}】${brief}`:brief;
+  let desc=`【${mod}】${brief}\n\n操作步骤\n`;
+
+  if(brief.includes('红点')){
+    desc+='1. 进入二合章节\n2. 设定new_item_reward触发未领奖状态\n';
+    if(brief.includes('剧情')) desc+='3. 触发剧情，进入剧情界面\n4. 查看图鉴入口红点位置\n';
+    else desc+='3. 查看图鉴入口红点\n';
+  }else{desc+='1. \n2. \n3. 观察表现\n';}
+
+  desc+='\n实际结果\n';
+  if(brief.includes('穿模')) desc+='红点位置超出按钮范围，出现穿模\n';else desc+='\n';
+
+  desc+='\n预期结果\n';
+  if(brief.includes('红点')&&brief.includes('剧情')) desc+='红点应正常显示在按钮范围内，不超出边界\n';
+  else if(brief.includes('红点')) desc+='红点应正常显示在图鉴入口按钮上方，领取后消失\n';
+  else desc+='\n';
+
+  return{title,module:mod,severity:'2',severity_label:'重要',priority:'1',priority_label:'P1',
+    issue_stage:'stage_first',business:'699e5baff696cf2f934946f8',platform:'fpxnk0d7p',device:'y44_srr3a',description:desc};
+}
+
+// ============================================================
+// Bug 提交
+// ============================================================
+const bugFiles=[];
+let currentBugId=null;
+
+function onBugFilesChange(){
+  const inp=document.getElementById('bug-files');
+  for(const f of inp.files) bugFiles.push(f);
+  renderBugAttachList();inp.value='';
+}
+function removeBugFile(i){bugFiles.splice(i,1);renderBugAttachList()}
+function renderBugAttachList(){
+  document.getElementById('bug-attach-list').innerHTML=bugFiles.map((f,i)=>{
+    const icon=f.type.startsWith('image/')?'🖼':f.type.startsWith('video/')?'🎬':'📄';
+    return '<div class="attach-item">'+icon+' '+f.name+' ('+(f.size/1024).toFixed(0)+'KB) <span class="remove" onclick="removeBugFile('+i+')">✕</span></div>';
+  }).join('');
+}
+
+function executeBug(){
+  const brief=document.getElementById('bug-brief').value.trim();
+  if(!brief){toast('请填写简述',false);return}
+  const assignee=document.getElementById('bug-assignee').value.trim()||'萌虎';
+
+  // 智能生成预览
+  const preview=generateSmartPreview(brief,assignee);
+  currentBugId=genId();
+
+  // 保存到 localStorage
+  const bugs=loadBugs();
+  bugs.unshift({
+    id:currentBugId,status:'draft',created_at:new Date().toISOString(),
+    bug:{brief_description:brief,title:preview.title,assignee,attachments:bugFiles.map(f=>f.name),
+      module:preview.module,severity:preview.severity,priority:preview.priority},
+    preview, submitted_at:null
+  });
+  saveBugs(bugs);
+
+  // 立即显示预览
+  showPreviewDirect(preview,assignee);
+  document.getElementById('bug-preview-status').innerHTML='<span style="color:var(--green);font-size:11px">✅ 已自动生成，编辑后点击确认提交</span>';
+  document.getElementById('btn-confirm').disabled=false;
+  toast('✅ 预览已生成');
+}
+
+function showPreviewDirect(p,assignee){
+  document.getElementById('preview-editor').style.display='block';
+  document.getElementById('p-title').value=p.title||'';
+  document.getElementById('p-module').value=p.module||'';
+  document.getElementById('p-assignee').value=assignee||'萌虎';
+  document.getElementById('p-severity').value=p.severity||'2';
+  document.getElementById('p-priority').value=p.priority||'1';
+  document.getElementById('p-description').value=p.description||'';
+}
+
+function confirmAndSubmit(){
+  if(!currentBugId){toast('请先点击执行',false);return}
+
+  const edited={title:document.getElementById('p-title').value.trim(),
+    module:document.getElementById('p-module').value.trim(),
+    severity:document.getElementById('p-severity').value,
+    severity_label:document.getElementById('p-severity').selectedOptions[0].textContent,
+    priority:document.getElementById('p-priority').value,
+    priority_label:document.getElementById('p-priority').selectedOptions[0].textContent,
+    description:document.getElementById('p-description').value.trim(),
+    assignee:document.getElementById('p-assignee').value.trim()};
+
+  if(!edited.title||!edited.description){toast('标题和描述不能为空',false);return}
+
+  // 更新 localStorage
+  const bugs=loadBugs();
+  const bug=bugs.find(b=>b.id===currentBugId);
+  if(bug){bug.status='confirmed';bug.preview=edited;bug.bug.title=edited.title;bug.bug.module=edited.module;saveBugs(bugs)}
+
+  // 生成 Claude Code 提交提示
+  const prompt=`请严格按照 /Users/hh/work/自动提交bug/AGENTS.md 规范提交 bug：
+
+标题: ${edited.title}
+模块: ${edited.module}
+严重程度: ${edited.severity_label} 优先级: ${edited.priority_label}
+经办人: ${edited.assignee}
+描述:
+${edited.description}
+
+步骤：
+1. 如果经办人不是萌虎，先 search_user_info 查 user_key（萌虎 user_key=7612458870287420634）
+2. 调用 mcp__feishu-project__create_workitem：
+   project_key: 699e5b9087ec7c1e141bda73
+   work_item_type: issue
+   template: 6377663
+   name: ${edited.title}
+   description: ${edited.description.replace(/\n/g,'\\n')}
+   severity: ${edited.severity}
+   priority: ${edited.priority}
+   role_owners: [{"role":"operator","owners":["<user_key>"]},{"role":"reporter","owners":["<user_key>"]}]
+3. 如有附件，upload_file → update_field field_512c55`;
+
+  navigator.clipboard.writeText(prompt);
+  document.getElementById('btn-confirm').disabled=true;
+  document.getElementById('btn-confirm').textContent='✅ 已确认';
+  toast('✅ 提交指令已复制！粘贴到 Claude Code 完成飞书写入');
+  loadStats();loadQueue();
+}
+
+// ============================================================
+// 队列
+// ============================================================
+function loadQueue(){
+  const bugs=loadBugs();
+  const labels={draft:'草稿',confirmed:'已确认',submitted:'已提交'};
+  document.getElementById('queue-tbody').innerHTML=bugs.length?bugs.map(b=>'<tr>'+
+    '<td><span class="status status-'+b.status+'">'+(labels[b.status]||b.status)+'</span></td>'+
+    '<td>'+esc(b.bug?.title||'')+'</td><td>'+esc(b.bug?.module||'')+'</td>'+
+    '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(b.bug?.brief_description||'')+'</td>'+
+    '<td style="font-size:12px;color:var(--text3)">'+(b.created_at||'').slice(0,16)+'</td>'+
+    '<td><button class="btn btn-sm btn-secondary" onclick="deleteBug(\''+b.id+'\')">删除</button></td></tr>'
+  ).join(''):'<tr><td colspan="6" style="color:var(--text3)">队列为空</td></tr>';
+}
+function deleteBug(id){
+  const bugs=loadBugs().filter(b=>b.id!==id);saveBugs(bugs);
+  loadQueue();loadStats();toast('已删除');
+}
+
+// ============================================================
+loadStats();
+</script>
+</body>
+</html>

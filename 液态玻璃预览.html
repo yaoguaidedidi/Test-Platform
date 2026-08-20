@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>液态玻璃预览 · 萌虎测试平台</title>
+<style>
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: #070a12;
+  }
+  #liquid-glass-huice {
+    min-height: 100vh;
+    border-radius: 0;
+  }
+</style>
+</head>
+<body>
+<div id="liquid-glass-huice" class="hg-app" data-theme="dark">
+  <div class="hg-scene" aria-hidden="true">
+    <div class="hg-halo hg-halo-a"></div>
+    <div class="hg-halo hg-halo-b"></div>
+    <div class="hg-halo hg-halo-c"></div>
+    <div class="hg-orbit"></div>
+    <div class="hg-disc"></div>
+    <div class="hg-beam"></div>
+    <div class="hg-dots"></div>
+    <div class="hg-photo"></div>
+  </div>
+
+  <header class="hg-nav hg-glass">
+    <div class="hg-brand">🐯 萌虎测试平台 <span class="hg-version">v1.5</span></div>
+    <nav class="hg-tabs" aria-label="功能切换">
+      <button type="button" class="hg-tab is-active">常规bug提交</button>
+      <button type="button" class="hg-tab">打点实验室</button>
+      <button type="button" class="hg-tab">日志抓取</button>
+    </nav>
+    <div class="hg-nav-right">
+      <span class="hg-status"><i class="hg-dot-on" aria-hidden="true"></i>飞书已连接</span>
+      <button type="button" id="hg-theme-toggle" class="hg-theme-btn" aria-pressed="false">亮色</button>
+    </div>
+  </header>
+
+  <main class="hg-main">
+    <section class="hg-card hg-glass">
+      <div class="hg-card-head">
+        <h1>常规 Bug 提交</h1>
+        <span class="hg-chip">详细提交</span>
+      </div>
+
+      <div class="hg-field-grid">
+        <label class="hg-field">
+          <span>问题标题</span>
+          <input class="hg-input" type="text" value="关卡初始 bonus 不显示" />
+        </label>
+        <label class="hg-field">
+          <span>所属模块</span>
+          <select class="hg-input">
+            <option>关内玩法</option>
+            <option>系统测试</option>
+            <option>打点记录</option>
+          </select>
+        </label>
+        <label class="hg-field hg-field-wide">
+          <span>复现步骤 / 场景说明</span>
+          <textarea class="hg-input" rows="3">1. 进入 1-1 关卡
+2. 观察初始 bonus 图标
+3. 确认未显示</textarea>
+        </label>
+      </div>
+
+      <div class="hg-actions">
+        <button type="button" class="hg-btn">保存草稿</button>
+        <button type="button" class="hg-btn hg-btn-primary">提交 Bug</button>
+      </div>
+    </section>
+
+    <aside class="hg-side">
+      <section class="hg-card hg-glass">
+        <h2>最近提交</h2>
+        <ul class="hg-list">
+          <li><span class="hg-badge hg-badge-err">阻断</span>火箭残留</li>
+          <li><span class="hg-badge hg-badge-warn">高</span>刷新 bug</li>
+          <li><span class="hg-badge hg-badge-ok">已修复</span>体力未同步</li>
+        </ul>
+      </section>
+
+      <section class="hg-card hg-glass hg-stat">
+        <div class="hg-stat-value">12</div>
+        <div class="hg-stat-label">本周待处理</div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<style>
+  #liquid-glass-huice,
+  #liquid-glass-huice *,
+  #liquid-glass-huice *::before,
+  #liquid-glass-huice *::after {
+    box-sizing: border-box;
+  }
+
+  #liquid-glass-huice h1,
+  #liquid-glass-huice h2,
+  #liquid-glass-huice ul {
+    margin: 0;
+  }
+
+  .hg-app {
+    --hg-page-1: #0b0f1f;
+    --hg-page-2: #161c32;
+    --hg-halo-a: rgba(255, 88, 130, 0.55);
+    --hg-halo-b: rgba(0, 190, 240, 0.5);
+    --hg-halo-c: rgba(160, 120, 255, 0.45);
+    --hg-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.03));
+    --hg-glass-highlight: rgba(255, 255, 255, 0.20);
+    --hg-rim: rgba(255, 255, 255, 0.16);
+    --hg-edge: rgba(255, 255, 255, 0.30);
+    --hg-text: #eef2fb;
+    --hg-text-2: #b7c1d6;
+    --hg-text-3: #7f8ba2;
+    --hg-input-fill: rgba(8, 12, 28, 0.42);
+    --hg-shadow: rgba(0, 0, 0, 0.42);
+    --hg-accent: #ff5c7a;
+    --hg-accent-2: #d63c56;
+    --hg-accent-soft: rgba(255, 92, 122, 0.22);
+    --hg-accent2: #28c8f0;
+    --hg-green: #3bd98a;
+    --hg-warn: #ffc857;
+    --hg-err: #ff6b81;
+
+    position: relative;
+    min-height: 640px;
+    padding: 18px;
+    overflow: hidden;
+    border-radius: 18px;
+    color: var(--hg-text);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+    transition: color 0.25s ease;
+  }
+
+  .hg-app[data-theme="light"] {
+    --hg-page-1: #eef1fb;
+    --hg-page-2: #f6eef8;
+    --hg-halo-a: rgba(255, 120, 160, 0.5);
+    --hg-halo-b: rgba(80, 190, 255, 0.45);
+    --hg-halo-c: rgba(180, 140, 255, 0.42);
+    --hg-glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.28));
+    --hg-glass-highlight: rgba(255, 255, 255, 0.85);
+    --hg-rim: rgba(0, 0, 0, 0.08);
+    --hg-edge: rgba(255, 255, 255, 0.7);
+    --hg-text: #181d2c;
+    --hg-text-2: #4a5368;
+    --hg-text-3: #8a93a6;
+    --hg-input-fill: rgba(255, 255, 255, 0.5);
+    --hg-shadow: rgba(45, 60, 110, 0.24);
+    --hg-accent: #e93b61;
+    --hg-accent-2: #c22d4b;
+    --hg-accent-soft: rgba(233, 59, 97, 0.16);
+    --hg-accent2: #0da6d8;
+    --hg-green: #18a35f;
+    --hg-warn: #d99a1f;
+    --hg-err: #e23b58;
+  }
+
+  .hg-scene {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 120% at 82% -12%, var(--hg-halo-b), transparent 55%),
+      radial-gradient(120% 120% at 8% 112%, var(--hg-halo-c), transparent 55%),
+      radial-gradient(120% 120% at -5% -5%, var(--hg-halo-a), transparent 48%),
+      linear-gradient(160deg, var(--hg-page-1), var(--hg-page-2));
+    transition: background 0.3s ease;
+  }
+
+  .hg-halo {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(12px);
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+  }
+  .hg-halo-a {
+    width: 440px;
+    height: 440px;
+    left: -120px;
+    top: -140px;
+    background: var(--hg-halo-a);
+  }
+  .hg-halo-b {
+    width: 540px;
+    height: 540px;
+    right: -160px;
+    bottom: -220px;
+    background: var(--hg-halo-b);
+  }
+  .hg-halo-c {
+    width: 360px;
+    height: 360px;
+    left: 48%;
+    top: 34%;
+    background: var(--hg-halo-c);
+    opacity: 0.65;
+  }
+
+  .hg-orbit {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    right: 10%;
+    top: 12%;
+    border: 2px solid var(--hg-edge);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+  .hg-disc {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    left: 6%;
+    bottom: 12%;
+    border-radius: 32px;
+    background: linear-gradient(135deg, var(--hg-accent), var(--hg-accent2));
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  }
+  .hg-beam {
+    position: absolute;
+    width: 68%;
+    height: 230px;
+    left: 30%;
+    top: 8%;
+    transform: rotate(-22deg);
+    background: linear-gradient(90deg, transparent, var(--hg-glass-highlight), transparent);
+    opacity: 0.35;
+  }
+  .hg-dots {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--hg-glass-highlight) 1px, transparent 1.5px);
+    background-size: 26px 26px;
+    opacity: 0.18;
+  }
+  .hg-photo {
+    position: absolute;
+    width: 280px;
+    height: 180px;
+    right: 20%;
+    top: 8%;
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 70% 30%, var(--hg-accent2), transparent 45%),
+      linear-gradient(135deg, var(--hg-accent2), var(--hg-accent));
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  .hg-glass {
+    position: relative;
+    border: 1px solid var(--hg-rim);
+    background:
+      radial-gradient(130% 140% at var(--mx, 24%) var(--my, 8%), var(--hg-glass-highlight), transparent 42%),
+      var(--hg-glass-fill);
+    -webkit-backdrop-filter: blur(16px) saturate(170%) brightness(1.06);
+    backdrop-filter: blur(16px) saturate(170%) brightness(1.06);
+    box-shadow:
+      inset 0 1px 0 var(--hg-edge),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+      inset 1px 0 0 rgba(255, 90, 90, 0.06),
+      inset -1px 0 0 rgba(80, 170, 255, 0.06),
+      0 16px 40px var(--hg-shadow),
+      0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+
+  .hg-nav {
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 18px;
+    margin-bottom: 18px;
+  }
+  .hg-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .hg-version {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--hg-accent-soft);
+    color: var(--hg-accent);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .hg-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .hg-tab {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    color: var(--hg-text-2);
+    background: transparent;
+    font-size: 13px;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hg-tab.is-active {
+    color: var(--hg-accent);
+    background: var(--hg-accent-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+  }
+  .hg-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+  .hg-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--hg-text-2);
+    font-size: 12px;
+  }
+  .hg-dot-on {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--hg-green);
+    box-shadow: 0 0 8px var(--hg-green);
+  }
+  .hg-theme-btn {
+    border: 1px solid var(--hg-rim);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    color: var(--hg-text-2);
+    background: var(--hg-glass-fill);
+    box-shadow: inset 0 1px 0 var(--hg-edge);
+    font-size: 12px;
+  }
+
+  .hg-main {
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(240px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .hg-side {
+    display: grid;
+    gap: 16px;
+  }
+  .hg-card {
+    border-radius: 18px;
+    padding: 18px;
+  }
+  .hg-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  #liquid-glass-huice h1 {
+    font-size: 17px;
+    font-weight: 700;
+  }
+  #liquid-glass-huice h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .hg-chip {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: var(--hg-accent-soft);
+    color: var(--hg-accent);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .hg-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .hg-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--hg-text-2);
+    font-size: 12px;
+  }
+  .hg-field-wide {
+    grid-column: 1 / -1;
+  }
+  .hg-input {
+    width: 100%;
+    border: 1px solid var(--hg-rim);
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: var(--hg-text);
+    background: var(--hg-input-fill);
+    box-shadow: inset 0 1px 0 var(--hg-edge);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+  }
+  .hg-input::placeholder {
+    color: var(--hg-text-3);
+  }
+  .hg-input:focus {
+    border-color: var(--hg-accent2);
+    box-shadow: inset 0 1px 0 var(--hg-edge), 0 0 0 3px rgba(40, 200, 240, 0.14);
+  }
+  .hg-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .hg-btn {
+    border: 1px solid var(--hg-rim);
+    border-radius: 999px;
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--hg-text);
+    background: var(--hg-glass-fill);
+    box-shadow: inset 0 1px 0 var(--hg-edge), 0 10px 22px var(--hg-shadow);
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .hg-btn:active {
+    transform: scale(0.97);
+  }
+  .hg-btn-primary {
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    background: linear-gradient(180deg, var(--hg-accent), var(--hg-accent-2));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 12px 26px var(--hg-shadow);
+  }
+  .hg-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 0;
+    list-style: none;
+    color: var(--hg-text-2);
+    font-size: 13px;
+  }
+  .hg-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hg-badge {
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .hg-badge-err {
+    background: rgba(255, 107, 129, 0.16);
+    color: var(--hg-err);
+  }
+  .hg-badge-warn {
+    background: rgba(255, 200, 87, 0.16);
+    color: var(--hg-warn);
+  }
+  .hg-badge-ok {
+    background: rgba(59, 217, 138, 0.16);
+    color: var(--hg-green);
+  }
+  .hg-stat-value {
+    font-size: 34px;
+    font-weight: 700;
+  }
+  .hg-stat-label {
+    color: var(--hg-text-3);
+    font-size: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .hg-main {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 520px) {
+    .hg-app {
+      padding: 12px;
+    }
+    .hg-field-grid {
+      grid-template-columns: 1fr;
+    }
+    .hg-field-wide {
+      grid-column: auto;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    var root = document.getElementById("liquid-glass-huice");
+    var toggle = document.getElementById("hg-theme-toggle");
+    var raf = 0;
+
+    function updateHighlight(x, y) {
+      root.style.setProperty("--mx", (x * 100).toFixed(2) + "%");
+      root.style.setProperty("--my", (y * 100).toFixed(2) + "%");
+    }
+
+    root.addEventListener("pointermove", function (event) {
+      var rect = root.getBoundingClientRect();
+      var x = (event.clientX - rect.left) / rect.width;
+      var y = (event.clientY - rect.top) / rect.height;
+      if (raf) {
+        cancelAnimationFrame(raf);
+      }
+      raf = requestAnimationFrame(function () {
+        updateHighlight(x, y);
+      });
+    });
+
+    toggle.addEventListener("click", function () {
+      var light = root.getAttribute("data-theme") === "light";
+      root.setAttribute("data-theme", light ? "dark" : "light");
+      toggle.setAttribute("aria-pressed", light ? "false" : "true");
+      toggle.textContent = light ? "亮色" : "暗色";
+    });
+  })();
+</script>
+</body>
+</html>
