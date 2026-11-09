@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-虎测平台 v1.5 - Bug 队列只读检查脚本
+虎测平台 v2.0 - Bug 队列只读检查脚本
 此脚本只查看记录，不执行飞书写入。飞书提交统一由 auto_submit.py 负责。
 
 用法（在 Claude Code 中）：
@@ -82,9 +82,9 @@ def print_bug_summary(bug):
 
 
 def print_claude_instructions(bug):
-    """打印 v1.5 的处理边界，不提供外部写入指令。"""
+    """打印 v2.0 的处理边界，不提供外部写入指令。"""
     print(f"""
-📋 v1.5 处理方式：
+📋 v2.0 处理方式：
 
 - 当前记录只允许在平台页面中编辑和确认。
 - 详细 Bug 可由 auto_process.py 使用 AI 整理预览。

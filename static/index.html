@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🐯 萌虎测试平台 v1.5</title>
+<title>🐯 萌虎测试平台 v2.0</title>
 <script>
-if(location.protocol==='file:')location.replace('http://127.0.0.1:8898/');
+if(location.protocol==='file:')location.replace('http://192.168.60.238:8898/');
 </script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -84,7 +84,10 @@ textarea{resize:vertical}
 .lab-stream-row{position:relative;padding:10px 10px 10px 15px;border-bottom:1px solid #263756;cursor:pointer;border-radius:5px}.lab-stream-row:hover{background:rgba(255,255,255,.035)}.lab-stream-row.selected{background:rgba(0,180,216,.08)}
 .lab-stream-row::before{content:'';position:absolute;left:4px;top:15px;width:5px;height:5px;border-radius:50%;background:var(--text3)}.lab-stream-row.pass::before{background:var(--green)}.lab-stream-row.warn::before{background:#e8b730}.lab-stream-row.error::before{background:var(--accent)}
 .lab-row-main{display:flex;align-items:center;gap:7px}.lab-row-name{color:var(--accent2);font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis}.lab-row-time{margin-left:auto;color:var(--text3);font-size:10px}.lab-row-result{margin-top:4px;color:var(--text2);font-size:10px}
+.lab-row-desc{flex:1;min-width:0;color:var(--text2);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lab-row-desc.missing{color:#e8b730;font-weight:600}
+.lab-row-desc.userprop{color:#7aa2f7}
 .lab-verdict{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:7px;background:rgba(255,255,255,.035);border-left:4px solid var(--text3)}.lab-verdict.pass{border-color:var(--green);background:rgba(46,204,113,.07)}.lab-verdict.warn{border-color:#e8b730;background:rgba(232,183,48,.07)}.lab-verdict.error{border-color:var(--accent);background:rgba(233,69,96,.07)}
+.lab-verdict.info{border-color:#7aa2f7;background:rgba(122,162,247,.07)}
 .lab-verdict-icon{font-size:24px}.lab-verdict-title{font-size:14px;font-weight:700}.lab-verdict-sub{margin-top:2px;color:var(--text2);font-size:11px}
 .lab-table-wrap{max-height:calc(100vh - 540px);min-height:250px;overflow:auto;border:1px solid #263756;border-radius:6px}
 .lab-table{width:100%;border-collapse:collapse;font-size:11px}.lab-table th{position:sticky;top:0;z-index:2;padding:8px;background:#101a32;color:var(--text2);text-align:left;border-bottom:1px solid #36517f}.lab-table td{padding:7px 8px;border-bottom:1px solid #263756;vertical-align:top}.lab-table tr:last-child td{border-bottom:0}
@@ -102,18 +105,32 @@ textarea{resize:vertical}
 @keyframes aiBlink{0%,100%{opacity:0}50%{opacity:1}}.ai-dot{animation:aiBlink 1.4s infinite}.ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
 @media(max-width:900px){.event-workspace,.log-grid{grid-template-columns:1fr}.event-list-card{height:auto;max-height:55vh;min-height:320px}.event-search-wrap{order:2;max-width:none;width:100%;margin-left:0}.event-metrics{margin-left:0}.lab-table-wrap{max-height:420px}.lab-spec-update{flex-wrap:wrap}.lab-spec-update-msg{width:100%}}
 @media(max-width:768px){.two-col{grid-template-columns:1fr}nav{flex-wrap:wrap}.log-filter-group{width:100%}.log-switch{flex:0 0 auto}}
+.lab-rules-mask{display:none;position:fixed;inset:0;background:rgba(4,8,18,.74);z-index:9998;align-items:flex-start;justify-content:center;padding:36px 16px;overflow:auto}
+.lab-rules-panel{width:min(880px,100%);background:var(--panel);border:1px solid #293c5f;border-radius:var(--radius);box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.lab-rules-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:15px 20px;border-bottom:1px solid #263756}
+.lab-rules-head h3{margin:0;font-size:15px}
+.lab-rules-hint{color:var(--text3);font-size:11px}
+.lab-rules-head-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.lab-rules-body{padding:14px 20px 20px}
+.lab-rules-section{margin-bottom:16px}
+.lab-rules-section-head{display:flex;align-items:center;gap:8px}
+.lab-rules-section-title{color:var(--accent2);font-size:13px;font-weight:700}
+.lab-rules-section-count{color:var(--text3);font-size:11px}
+.lab-rules-section-intro{margin:4px 0 8px;color:var(--text3);font-size:11px;line-height:1.6}
+.lab-rules-item{margin-bottom:6px;padding:9px 11px;border-radius:6px;border-left:3px solid #2a3a5c;background:rgba(255,255,255,.028)}
+.lab-rules-item-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lab-rules-item-title{color:var(--text);font-size:12px;font-weight:700}
+.lab-rules-item-plain{margin-top:4px;color:var(--text2);font-size:11px;line-height:1.65}
 </style>
 </head>
 <body>
 
 <nav>
-  <span class="logo">🐯 萌虎测试平台 v1.5</span>
+  <span class="logo">🐯 萌虎测试平台 v2.0</span>
   <button onclick="switchTab('bug')" id="nav-bug" class="active">常规bug提交</button>
   <button onclick="switchTab('survey')" id="nav-survey">问卷bug提交</button>
-  <button onclick="switchTab('testcase')" id="nav-testcase">用例生成</button>
   <button onclick="switchTab('eventlab')" id="nav-eventlab">📊 打点测试</button>
   <button onclick="switchTab('logcapture')" id="nav-logcapture">📱 日志抓取</button>
-  <button onclick="switchTab('auto')" id="nav-auto">自动化测试（开发中）</button>
   <button onclick="switchTab('tools')" id="nav-tools">🔧 工具</button>
   <span id="login-area" style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="login-status" style="font-size:12px;color:var(--text3)">检查中...</span>
@@ -174,8 +191,9 @@ textarea{resize:vertical}
     </div>
   </div>
   <div class="card log-problems-card">
-    <div class="log-problems-title"><strong>⚠️ 问题总览</strong><span id="log-problem-badge" class="log-problem-badge"></span><span class="log-problems-hint">自动汇总崩溃、异常和网络错误</span></div>
+    <div class="log-problems-title"><strong>⚠️ 问题总览</strong><span id="log-problem-badge" class="log-problem-badge"></span><span class="log-problems-hint">自动汇总崩溃、异常和网络错误</span><button class="btn btn-secondary btn-sm" onclick="logToggleIgnored()" style="margin-left:12px">已忽略 <span id="log-ignored-count">0</span></button><button class="btn btn-danger btn-sm" id="log-problems-clear-btn" onclick="logClearProblems()" style="margin-left:auto">🗑 清理所有</button></div>
     <div id="log-problems" class="log-problems"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">暂无日志问题</div><div class="ui-state-detail">开始抓取后自动汇总崩溃、异常和网络错误</div></div></div></div>
+    <div id="log-ignored" class="log-ignored" style="display:none;margin-top:10px"></div>
   </div>
 </div>
 
@@ -190,8 +208,9 @@ textarea{resize:vertical}
     <div class="event-actions">
       <button class="btn btn-green btn-sm" id="lab-capture-toggle" onclick="labToggleCapture()">▶ 开始抓取</button>
       <button class="btn btn-secondary btn-sm" onclick="labClear()">🗑 清空</button>
+      <button class="btn btn-secondary btn-sm" id="lab-rules-btn" onclick="labShowRules()">📖 校验规则</button>
       <div class="event-search-wrap">
-        <input id="lab-search" type="text" placeholder="搜索事件名或已抓取参数，例如 ht" autocomplete="off" oninput="labSearchInput()" onfocus="labRenderSuggestions()" onblur="labHideSuggestions()">
+        <input id="lab-search" type="text" placeholder="搜事件名（支持模糊，如 tt）或从下拉精确筛选" autocomplete="off" oninput="labSearchInput()" onfocus="labRenderSuggestions()" onblur="labHideSuggestions()">
         <button type="button" class="event-search-clear" aria-label="清空事件和参数筛选" onclick="labClearFilter()">×</button>
         <div id="lab-suggestions" class="event-suggestions" role="listbox"></div>
         <div id="lab-filter-chips" class="lab-filter-chips" aria-label="已添加的事件筛选"></div>
@@ -203,12 +222,12 @@ textarea{resize:vertical}
     <strong>🔄 更新打点规范</strong>
     <input type="text" id="lab-spec-url" aria-label="打点规范飞书表格链接" value="https://funarkgame.feishu.cn/wiki/N7IVw6ocHiwoExkcYSFcd2ttn6o?sheet=jEAYXN">
     <button class="btn btn-primary btn-sm" id="lab-spec-update-btn" onclick="updateSpec('lab')">更新并校验</button>
-    <span id="lab-spec-update-msg" class="lab-spec-update-msg">固定读取“次留版本test2打点（正式内容）”</span>
+    <span id="lab-spec-update-msg" class="lab-spec-update-msg">自动识别全部打点页签（含新手漏斗 A/B 组），无需改配置</span>
   </div>
 
   <div class="event-workspace">
     <div class="card event-list-card">
-      <div class="event-section-title"><strong>事件列表</strong><span style="font-size:11px;color:var(--text3)">最新事件在上</span></div>
+      <div class="event-section-title"><strong>事件列表</strong><span id="lab-stream-hint" style="font-size:11px;color:var(--text3)">最新事件在上</span></div>
       <div id="lab-stream"><div class="ui-state empty"><div class="ui-state-icon">○</div><div class="ui-state-copy"><div class="ui-state-title">尚未开始抓取</div><div class="ui-state-detail">开始抓取后操作模拟器</div></div></div></div>
     </div>
     <div class="card event-detail-card" style="max-height:calc(100vh - 225px)">
@@ -238,8 +257,8 @@ textarea{resize:vertical}
   <div class="card">
     <h2>🐛 常规bug提交</h2>
     <div style="display:flex;gap:0;margin-bottom:16px;background:var(--input);border-radius:var(--radius);overflow:hidden">
-      <button id="mode-detail" onclick="setMode('detail')" style="flex:1;padding:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📋 详细提交</button>
-      <button id="mode-simple" onclick="setMode('simple')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📝 简单提交</button>
+      <button id="mode-simple" onclick="setMode('simple')" style="flex:1;padding:10px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📝 简单提交</button>
+      <button id="mode-detail" onclick="setMode('detail')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s">📋 详细提交</button>
     </div>
     <div class="form-group">
       <label>附件（截图/视频/日志，多选，将上传到飞书相关附件）</label>
@@ -248,7 +267,7 @@ textarea{resize:vertical}
     </div>
     <div class="form-group">
       <label>简述</label>
-      <textarea id="bug-brief" rows="3" placeholder="简单描述你遇到的问题，模块/严重程度/优先级自动判断"></textarea>
+      <textarea id="bug-brief" rows="3" placeholder="简单描述你遇到的问题，严重程度/优先级自动判断，模块请在预览中自行填写"></textarea>
     </div>
     <div class="form-group">
       <label>经办人</label>
@@ -271,7 +290,13 @@ textarea{resize:vertical}
         <div class="form-group"><label>优先级</label><select id="p-priority"><option value="0">P0</option><option value="1" selected>P1</option><option value="2">P2</option><option value="kvt5xvrgc">P3</option><option value="99">待定</option></select></div>
       </div>
       <div id="bug-stored-attachments" class="stored-attachments"></div>
-      <div class="form-group"><label>完整描述（提交到飞书的 description 字段）</label><textarea id="p-description" rows="8"></textarea></div>
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label style="margin-bottom:0">完整描述（提交到飞书的 description 字段）</label>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="insertDescTemplate()">＋ 加入模板</button>
+        </div>
+        <textarea id="p-description" rows="18"></textarea>
+      </div>
     </div>
     <button class="btn btn-green" id="btn-confirm" onclick="confirmAndSubmit()" disabled style="width:100%;margin-top:12px">提交到飞书</button>
   </div>
@@ -317,11 +342,6 @@ textarea{resize:vertical}
 </div>
 </div>
 
-<!-- ===== 自动化测试 ===== -->
-<div class="tab" id="tab-auto">
-  <div style="text-align:center;padding:40px;color:var(--text3)">自动化测试 — 待开发</div>
-</div>
-
 <!-- ===== 工具 ===== -->
 <div class="tab" id="tab-tools">
   <div class="card">
@@ -356,7 +376,7 @@ textarea{resize:vertical}
       <div style="background:var(--input);border-radius:var(--radius);padding:20px">
         <div style="font-size:15px;font-weight:bold;margin-bottom:8px">🔄 更新打点规范</div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
-          输入飞书表格链接，固定读取“次留版本test2打点（正式内容）”页签，同步事件、字段说明和类型。
+          输入飞书表格链接，固定读取“次留版本打点（正式内容）”页签，同步事件、字段说明和类型。
         </div>
         <input type="text" id="spec-url" placeholder="飞书表格链接" value="https://funarkgame.feishu.cn/wiki/N7IVw6ocHiwoExkcYSFcd2ttn6o?sheet=jEAYXN" style="width:100%;margin-bottom:8px;font-size:12px">
         <button class="btn btn-primary btn-sm" id="spec-update-btn" onclick="updateSpec()" style="width:100%">更新</button>
@@ -376,40 +396,7 @@ textarea{resize:vertical}
   </div>
 </div>
 
-<!-- ===== 用例生成 ===== -->
-<div class="tab" id="tab-testcase">
-  <div class="card">
-    <h2>📝 用例信息</h2>
-    <div class="two-col">
-      <div class="form-group"><label>标题</label><input type="text" id="tc-title" placeholder="如：特殊障碍测试用例_浮木"></div>
-      <div class="form-group"><label>保存路径（由浏览器下载设置决定）</label><input type="text" id="tc-path" placeholder="使用浏览器默认下载目录" disabled></div>
-    </div>
-    <div class="two-col">
-      <div class="form-group"><label>一级模块 B</label><input type="text" id="tc-b" placeholder="如：浮木"></div>
-      <div class="form-group"><label>二级模块 C</label><input type="text" id="tc-c" placeholder="如：UI表现"></div>
-    </div>
-    <div class="two-col">
-      <div class="form-group"><label>三级模块 D</label><input type="text" id="tc-d" placeholder="可选"></div>
-      <div class="form-group"><label>四级模块 E</label><input type="text" id="tc-e" placeholder="可选"></div>
-    </div>
-    <button class="btn btn-secondary" onclick="addTcCase()" style="width:100%">+ 添加用例（基于上述模块）</button>
-  </div>
-  <div class="card">
-    <h2>📋 用例列表 (<span id="tc-count">0</span>条)</h2>
-    <div style="overflow-x:auto">
-      <table class="case-table">
-        <thead><tr><th class="col-id">#</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th class="col-g">操作步骤</th><th class="col-h">期望结果(\n分隔)</th><th class="col-p">优先级</th><th>备注</th><th></th></tr></thead>
-        <tbody id="tc-table-body"></tbody>
-      </table>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="generateXlsx()">生成并下载 xlsx</button>
-      <button class="btn btn-secondary" onclick="clearAllTc()">清空</button>
-    </div>
-  </div>
-</div>
-
-<div style="text-align:center;padding:16px;color:var(--text3);font-size:10px">v1.5</div>
+<div style="text-align:center;padding:16px;color:var(--text3);font-size:10px">v2.0</div>
 </main>
 
 <script>
@@ -463,7 +450,7 @@ const bugFiles=[];
 let currentBugId=sessionStorage.getItem('currentBugId')||null;
 let pollTimer=null,progressTimer=null,previewData=null;
 let bugRecordingPollTimer=null;
-let bugMode='detail';
+let bugMode='simple';
 let eventBugPreview=null;
 try{eventBugPreview=JSON.parse(sessionStorage.getItem('eventBugPreview')||'null')}catch(e){sessionStorage.removeItem('eventBugPreview')}
 
@@ -474,6 +461,27 @@ function setMode(m){
   else{s.style.background='var(--accent)';s.style.color='#fff';d.style.background='transparent';d.style.color='var(--text2)'}
 }
 function getBugMode(){return bugMode}
+
+// 「加入模板」：把详细提交的描述结构（操作步骤/实际结果/预期结果）插入到
+// 「描述」与结尾备注「（如截图录屏log所示）」之间；没有该备注则追加到末尾。
+const DESC_TEMPLATE = '操作步骤\n1. \n2. \n3. \n\n实际结果\n\n\n预期结果';
+const DESC_LOG_TAIL = '（如截图录屏log所示）';
+function insertDescTemplate(){
+  const el = document.getElementById('p-description');
+  const cur = (el.value || '').replace(/\s+$/, '');
+  let val;
+  if (!cur) {
+    val = DESC_TEMPLATE;
+  } else if (cur.indexOf(DESC_LOG_TAIL) !== -1) {
+    // 简单提交：保留标题行，模板放中间、尾巴收尾，去掉正文里重复的简述
+    val = cur.split('\n\n')[0] + '\n\n' + DESC_TEMPLATE + '\n\n' + DESC_LOG_TAIL;
+  } else {
+    val = cur + '\n\n' + DESC_TEMPLATE;
+  }
+  el.value = val;
+  el.scrollTop = el.scrollHeight;
+  el.focus();
+}
 
 function onBugFilesChange(){const inp=document.getElementById('bug-files');for(const f of inp.files)bugFiles.push(f);renderBugAttachList();inp.value=''}
 function removeBugFile(i){bugFiles.splice(i,1);renderBugAttachList()}
@@ -867,7 +875,7 @@ switchTab=function(n){
 };
 
 // ===== Android App 日志抓取 =====
-var logDevices=[],logApps=[],logLines=[],logCursor=0,logPollTimer=null,logPaused=false,logCurrentSession=null,logPageLoaded=false,logProblems=[],logProblemTick=0,logProblemDetails={},logBugGenerating='',logCaptureAction='',screenRecordSession=null,screenRecordAction='',screenRecordEnvironment=null;
+var logDevices=[],logApps=[],logLines=[],logCursor=0,logPollTimer=null,logPaused=false,logCurrentSession=null,logPageLoaded=false,logProblems=[],logIgnored=[],logProblemTick=0,logProblemDetails={},logBugGenerating='',logCaptureAction='',screenRecordSession=null,screenRecordAction='',screenRecordEnvironment=null;
 var screenRecordAutoStored=localStorage.getItem('screenRecordAuto');if(screenRecordAutoStored!==null){var screenRecordAutoEl=document.getElementById('screen-record-auto');if(screenRecordAutoEl)screenRecordAutoEl.checked=screenRecordAutoStored!=='false'}
 function logFormatBytes(bytes){var value=Number(bytes)||0,units=['B','KB','MB','GB'],index=0;while(value>=1024&&index<units.length-1){value/=1024;index++}return (index?value.toFixed(1):value)+' '+units[index]}
 async function loadLogCapturePage(){
@@ -1044,6 +1052,45 @@ function logSaveCurrent(){
 }
 async function logLoadProblems(){
   try{var result=await api('/api/log-capture/problems');logProblems=result.problems||[];logRenderProblems()}catch(e){}
+  logLoadIgnored()
+}
+async function logClearProblems(){
+  if(!logProblems.length){toast('当前没有问题可清理',false);return}
+  if(!confirm('确定清空问题总览里的所有问题吗？'))return
+  try{await api('/api/log-capture/problems/clear','POST',{});logProblems=[];logProblemDetails={};logRenderProblems();toast('已清空所有问题')}catch(e){toast('清理失败：'+e.message,false)}
+}
+async function logIgnoreProblem(clickEvent,id){
+  if(clickEvent)clickEvent.stopPropagation();
+  if(!confirm('忽略后,这个报错不再录屏,也不会再出现在问题总览(仍可从完整日志查看)。可在"已忽略"里恢复。确定忽略?'))return
+  try{
+    await api('/api/log-capture/problems/'+encodeURIComponent(id)+'/ignore','POST',{});
+    logProblems=logProblems.filter(function(p){return p.id!==id});
+    delete logProblemDetails[id];
+    logLoadIgnored();logRenderProblems();toast('已忽略该报错')
+  }catch(err){toast('忽略失败：'+err.message,false)}
+}
+async function logLoadIgnored(){
+  try{var r=await api('/api/log-capture/problems/ignored');logIgnored=r.ignored||[];var c=document.getElementById('log-ignored-count');if(c)c.textContent=String(logIgnored.length)}catch(e){}
+}
+function logToggleIgnored(){
+  var el=document.getElementById('log-ignored');if(!el)return;
+  if(el.style.display==='none'){logRenderIgnored();el.style.display='block'}
+  else el.style.display='none'
+}
+function logRenderIgnored(){
+  var el=document.getElementById('log-ignored');if(!el)return;
+  if(!logIgnored.length){el.innerHTML=uiState('empty','没有已忽略的报错','忽略过的报错会出现在这里,可随时恢复');return}
+  el.innerHTML='<div style="font-size:11px;color:var(--text3);margin-bottom:6px">已忽略的报错(点击恢复后,该报错会重新录屏并进入问题总览)</div>'+logIgnored.map(function(it){
+    return '<div class="log-problem-card"><div class="log-problem-head"><span class="log-problem-kind">已忽略</span><span class="log-problem-title" title="'+esc(it.title)+'">'+esc(it.title)+'</span></div>'+(it.message?'<div class="log-problem-message">'+esc(it.message)+'</div>':'')+'<div class="log-problem-meta"><span>忽略于'+esc(it.ignored_at||'—')+'</span></div><div class="log-problem-actions"><button class="btn btn-secondary btn-sm" onclick="logUnignoreProblem(\''+esc(it.signature)+'\')">↩ 恢复</button></div></div>'
+  }).join('')
+}
+async function logUnignoreProblem(sig){
+  if(!confirm('恢复后,这个报错会重新出现在问题总览,并恢复录屏。确定恢复?'))return
+  try{
+    await api('/api/log-capture/ignored/unignore','POST',{signature:sig});
+    logIgnored=logIgnored.filter(function(it){return it.signature!==sig});
+    logRenderIgnored();logLoadIgnored();toast('已恢复该报错')
+  }catch(err){toast('恢复失败：'+err.message,false)}
 }
 function logProblemKindLabel(kind){return {crash:'崩溃',exception:'异常',network:'网络错误',error:'错误'}[kind]||'日志问题'}
 function logRenderProblems(){
@@ -1053,8 +1100,9 @@ function logRenderProblems(){
   el.innerHTML=logProblems.map(function(problem){
     var detail=logProblemDetails[problem.id],context=detail?(detail.context||[]).map(function(row){return esc([row.time,row.source,row.message].filter(Boolean).join(' '))}).join('\n'):'';
     var bugText=problem.bug_id?'查看 Bug':(logBugGenerating===problem.id?'生成中...':'提交 Bug');
-    var recordingText=problem.recording_status==='ready'?'现场录屏已冻结':problem.recording_status==='pending'?'正在冻结现场录屏':problem.recording_status==='failed'?'现场录屏不可用':'';
-    return '<div class="log-problem-card '+esc(problem.severity||'error')+'"><div class="log-problem-head"><span class="log-problem-kind">'+esc(logProblemKindLabel(problem.kind))+'</span><span class="log-problem-title" title="'+esc(problem.title||'')+'">'+esc(problem.title||'未知错误')+'</span><span class="log-problem-count">'+Number(problem.count||1)+' 次</span></div><div class="log-problem-message">'+esc(problem.message||'')+'</div><div class="log-problem-meta"><span>'+esc(problem.source||'未知来源')+'</span><span>首次 '+esc(problem.first_at||'—')+'</span><span>最近 '+esc(problem.last_at||'—')+'</span>'+(recordingText?'<span>'+esc(recordingText)+'</span>':'')+'</div><div class="log-problem-actions"><button class="btn btn-secondary btn-sm" onclick="logToggleProblem(event,\''+esc(problem.id)+'\')">'+(detail?'收起上下文':'展开上下文')+'</button><button class="btn btn-primary btn-sm" onclick="logCreateProblemBug(event,\''+esc(problem.id)+'\')" '+(logBugGenerating?'disabled':'')+'>'+bugText+'</button></div><div class="log-problem-context '+(detail?'open':'')+'">'+(context||'正在读取上下文...')+'</div></div>'
+    var recordingText=problem.recording_status==='ready'?'现场录屏已冻结':problem.recording_status==='pending'?'正在冻结现场录屏':problem.recording_status==='failed'?'现场录屏不可用':problem.recording_status==='unavailable'?'本次未录屏':'';
+    if(problem.recording_status==='failed'&&problem.recording_error)recordingText+='（'+problem.recording_error+'）';
+    return '<div class="log-problem-card '+esc(problem.severity||'error')+'"><div class="log-problem-head"><span class="log-problem-kind">'+esc(logProblemKindLabel(problem.kind))+'</span><span class="log-problem-title" title="'+esc(problem.title||'')+'">'+esc(problem.title||'未知错误')+'</span><span class="log-problem-count">'+Number(problem.count||1)+' 次</span></div><div class="log-problem-message">'+esc(problem.message||'')+'</div><div class="log-problem-meta"><span>'+esc(problem.source||'未知来源')+'</span><span>首次 '+esc(problem.first_at||'—')+'</span><span>最近 '+esc(problem.last_at||'—')+'</span>'+(recordingText?'<span>'+esc(recordingText)+'</span>':'')+'</div><div class="log-problem-actions"><button class="btn btn-secondary btn-sm" onclick="logToggleProblem(event,\''+esc(problem.id)+'\')">'+(detail?'收起上下文':'展开上下文')+'</button><button class="btn btn-primary btn-sm" onclick="logCreateProblemBug(event,\''+esc(problem.id)+'\')" '+(logBugGenerating?'disabled':'')+'>'+bugText+'</button><button class="btn btn-danger btn-sm" onclick="logIgnoreProblem(event,\''+esc(problem.id)+'\')">忽略并隐藏</button></div><div class="log-problem-context '+(detail?'open':'')+'">'+(context||'正在读取上下文...')+'</div></div>'
   }).join('')
 }
 async function logToggleProblem(clickEvent,id){
@@ -1164,7 +1212,7 @@ async function startEventCapture(){
   }
   return api('/api/events/start','POST',{})
 }
-var labPollTimer=null,labCursor=0,labEvents=[],labSelected=null,labRunning=false,labHasStarted=false,labEventFilters=[],labParamFilters=[],labBugGeneratingKey='',labShowCommonParams=false,labCaptureAction='';
+var labPollTimer=null,labCursor=0,labEvents=[],labRelations=[],labSelected=null,labRunning=false,labHasStarted=false,labEventFilters=[],labParamFilters=[],labBugGeneratingKey='',labShowCommonParams=false,labCaptureAction='',labNameQuery='';
 function labValue(prop){return prop&&typeof prop==='object'&&'value' in prop?prop.value:prop}
 function labValueText(prop){
   var value=labValue(prop);
@@ -1199,6 +1247,33 @@ function labTypeValid(value,type){
   if(t==='对象组')return Array.isArray(value)||(value!==null&&typeof value==='object');
   return true
 }
+var labEnumCache={};
+function labEnumMap(text){
+  var key=String(text||'');if(!key.trim())return null;
+  if(Object.prototype.hasOwnProperty.call(labEnumCache,key))return labEnumCache[key];
+  var lines=key.split(/\r?\n/).map(function(line){return line.trim()}).filter(Boolean),map={},valid=lines.length>0;
+  for(var i=0;i<lines.length;i++){
+    var match=lines[i].match(/^(-?\d+)\s*[：:]\s*(.*)$/);
+    if(!match){valid=false;break}
+    map[match[1]]=match[2]
+  }
+  labEnumCache[key]=valid?map:null;
+  return labEnumCache[key]
+}
+function labEnumSpan(map){
+  var values=[];for(var key in map)if(Object.prototype.hasOwnProperty.call(map,key))values.push(Number(key));
+  values.sort(function(a,b){return a-b});
+  var contiguous=values.length>0;
+  for(var i=1;i<values.length;i++)if(values[i]!==values[0]+i){contiguous=false;break}
+  if(contiguous)return values[0]+'～'+values[values.length-1];
+  return values.join('、')
+}
+function labEnumViolation(value,spec){
+  if(typeof value!=='number'||!Number.isInteger(value))return '';
+  var map=labEnumMap((spec||{}).value_desc);if(!map)return '';
+  if(Object.prototype.hasOwnProperty.call(map,String(value)))return '';
+  return '取值 '+value+' 不在规范允许的取值内（合法值 '+labEnumSpan(map)+'）'
+}
 function labSpecConflictsForEvent(eventName){
   return eventSpecConsistencyIssues.filter(function(conflict){
     return (conflict.events||[]).some(function(item){return item.event===eventName})
@@ -1208,6 +1283,16 @@ function labEvaluate(e){
   var result={status:'pass',errors:0,warns:0,rows:[],issues:[],ignored:0};
   if(!e)return result;
   var name=e.event_name||'',props=e.properties||{};
+  // TA 的「用户属性上报」（user_set / user_setOnce / user_add / user_del …）没有事件名，
+  // 它不是事件，不该按事件规范校验：只把它带的属性列出来，且不计错误/警告。
+  var taType=String(e.ta_type||'').toLowerCase();
+  if(!name&&taType&&taType!=='track'){
+    for(var userPropField in props){
+      result.rows.push({level:'pass',field:userPropField,value:labValueText(props[userPropField]),valueDesc:'',type:'—',desc:'用户属性',label:'属性'});
+    }
+    result.status='info';result.isUserProp=true;result.userPropType=taType;
+    return result
+  }
   if(name==='cp'){
     var standaloneCpFields=eventSpecByEvent.cp||{};
     for(var standaloneCpField in props){
@@ -1230,8 +1315,15 @@ function labEvaluate(e){
       result.issues.push({level:'warn',event:name,field:field,msg:'规范参数未上报'});
     }else{
       var actual=labValue(props[field]);
-      if(labTypeValid(actual,spec.type||''))result.rows.push({level:'pass',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'通过'});
-      else{
+      if(labTypeValid(actual,spec.type||'')){
+        var enumError=labEnumViolation(actual,spec);
+        if(enumError){
+          result.errors++;result.rows.push({level:'error',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:enumError,label:'取值越界'});
+          result.issues.push({level:'error',event:name,field:field,msg:enumError})
+        }else{
+          result.rows.push({level:'pass',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'通过'})
+        }
+      }else{
         result.errors++;result.rows.push({level:'error',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'类型错误'});
         result.issues.push({level:'error',event:name,field:field,msg:'应为 '+String(spec.type||'规定类型')+'，实际值 '+labValueText(props[field])})
       }
@@ -1263,7 +1355,13 @@ function labEvaluate(e){
   result.status=result.errors?'error':(result.warns?'warn':'pass');
   return result
 }
-function labSearchInput(){labRenderSuggestions()}
+function labSearchInput(){
+  // 输入框里的文字直接当作「事件名模糊搜索」用：输入 tt 就过滤出所有名字包含 tt 的事件
+  var input=document.getElementById('lab-search');
+  labNameQuery=((input&&input.value)||'').trim();
+  labRenderStream();
+  labRenderSuggestions()
+}
 function labCapturedParamNames(){
   var found={};
   for(var i=0;i<labEvents.length;i++){
@@ -1293,7 +1391,7 @@ function labHideSuggestions(){setTimeout(function(){var box=document.getElementB
 function labSelectFilter(kind,name){
   var filters=kind==='param'?labParamFilters:labEventFilters;
   if(filters.indexOf(name)<0)filters.push(name);
-  document.getElementById('lab-search').value='';document.getElementById('lab-suggestions').classList.remove('open');labRenderFilterChips();labRenderStream()
+  document.getElementById('lab-search').value='';labNameQuery='';document.getElementById('lab-suggestions').classList.remove('open');labRenderFilterChips();labRenderStream()
 }
 function labRemoveFilter(kind,name){
   if(kind==='param')labParamFilters=labParamFilters.filter(function(item){return item!==name});
@@ -1311,7 +1409,7 @@ function labRenderFilterChips(){
 function labClearFilter(){
   var input=document.getElementById('lab-search');if(input)input.value='';
   var box=document.getElementById('lab-suggestions');if(box){box.classList.remove('open');box.innerHTML=''}
-  labEventFilters=[];labParamFilters=[];labRenderFilterChips();labRenderStream();if(input)input.focus()
+  labNameQuery='';labEventFilters=[];labParamFilters=[];labRenderFilterChips();labRenderStream();if(input)input.focus()
 }
 async function labStart(){
   try{
@@ -1327,7 +1425,7 @@ async function labStop(){
 function labToggleCapture(){if(labCaptureAction)return;if(labRunning)labStop();else labStart()}
 async function labClear(){
   try{
-    var cleared=await api('/api/events/clear','POST');labEvents=[];labCursor=cleared.cursor||0;labSelected=null;labRenderAll()
+    var cleared=await api('/api/events/clear','POST');labEvents=[];labRelations=[];labCursor=cleared.cursor||0;labSelected=null;labRenderAll()
   }catch(e){toast(e.message,false)}
 }
 async function labPoll(){
@@ -1339,6 +1437,7 @@ async function labPoll(){
       labSortEvents()
     }
     if(r.cursor!==undefined)labCursor=r.cursor;
+    if(r.relations)labRelations=r.relations;
     if(r.running===false){labRunning=false;labRenderAll();return}
     labRenderAll()
   }catch(e){}
@@ -1346,6 +1445,51 @@ async function labPoll(){
 }
 function labSelectCaptured(index){labSelected=labEvents[index];labRenderAll()}
 function labToggleCommonParams(){labShowCommonParams=!labShowCommonParams;labRenderAll()}
+var labRulesLoading=false;
+function labShowRules(){
+  var mask=document.getElementById('lab-rules-mask');if(!mask)return;
+  mask.style.display='flex';
+  if(!labRulesLoading)labLoadRules();
+}
+function labHideRules(){var mask=document.getElementById('lab-rules-mask');if(mask)mask.style.display='none'}
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  var mask=document.getElementById('lab-rules-mask');
+  if(mask&&mask.style.display==='flex')labHideRules();
+});
+function labLoadRules(){
+  var body=document.getElementById('lab-rules-body');if(!body)return;
+  labRulesLoading=true;
+  body.innerHTML=uiState('loading','正在读取校验规则','稍等一下');
+  fetch('/api/event-rules').then(function(r){return r.json()}).then(function(data){
+    labRulesLoading=false;
+    if(!data||data.ok===false)throw new Error((data&&data.error)||'接口返回异常');
+    var mask=document.getElementById('lab-rules-mask');if(mask)mask.dataset.loaded='1';
+    body.innerHTML=labRulesHtml(data);
+    var hint=document.getElementById('lab-rules-hint');
+    if(hint)hint.textContent='规范共 '+data.spec_event_count+' 个事件、'+data.spec_field_count+' 个字段，本页读取时间 '+new Date().toLocaleTimeString('zh-CN');
+  }).catch(function(e){
+    labRulesLoading=false;
+    body.innerHTML=uiState('error','读取校验规则失败',String(e.message||e),'<button class="btn btn-secondary btn-sm" onclick="labLoadRules()">重试</button>');
+  });
+}
+function labRulesHtml(data){
+  var html='';
+  var sections=data.sections||[];
+  for(var i=0;i<sections.length;i++){
+    var section=sections[i],items=section.items||[];
+    html+='<div class="lab-rules-section"><div class="lab-rules-section-head"><span class="lab-rules-section-title">'+esc(section.title)+'</span><span class="lab-rules-section-count">'+items.length+' 条</span></div>';
+    if(section.intro)html+='<div class="lab-rules-section-intro">'+esc(section.intro)+'</div>';
+    for(var j=0;j<items.length;j++){
+      var item=items[j],level=item.level||'';
+      html+='<div class="lab-rules-item"><div class="lab-rules-item-head"><span class="lab-rules-item-title">'+esc(item.title)+'</span>'
+        +(level?'<span class="lab-badge '+level+'">'+(level==='error'?'报错':'提醒')+'</span>':'')
+        +'</div><div class="lab-rules-item-plain">'+esc(item.plain)+'</div></div>';
+    }
+    html+='</div>';
+  }
+  return html;
+}
 function labRenderHeader(){
   var toggle=document.getElementById('lab-capture-toggle');
   if(toggle){toggle.disabled=!!labCaptureAction;toggle.className='btn btn-sm '+(labRunning?'btn-danger':'btn-green');toggle.textContent=labCaptureAction==='starting'?'正在启动...':labCaptureAction==='stopping'?'正在停止...':labRunning?'■ 停止抓取':'▶ 开始抓取'}
@@ -1356,17 +1500,36 @@ function labRenderHeader(){
 function labRenderStream(){
   var el=document.getElementById('lab-stream');if(!el)return;
   if(!labEvents.length){el.innerHTML=labRunning?uiState('loading','正在监听打点事件','请继续操作模拟器'):uiState('empty',labHasStarted?'暂无打点事件':'尚未开始抓取',labHasStarted?'本次会话还没有收到事件':'开始抓取后操作模拟器');return}
-  var html='';
+  var html='',nameQuery=(labNameQuery||'').toLowerCase(),shown=0;
   for(var i=0;i<labEvents.length;i++){
     var e=labEvents[i],props=e.properties||{},matchesParams=true;
+    if(nameQuery&&String(e.event_name||'').toLowerCase().indexOf(nameQuery)<0)continue;
     if(labEventFilters.length&&labEventFilters.indexOf(e.event_name||'')<0)continue;
     for(var paramIndex=0;paramIndex<labParamFilters.length;paramIndex++)if(!Object.prototype.hasOwnProperty.call(props,labParamFilters[paramIndex])){matchesParams=false;break}
     if(!matchesParams)continue;
+    shown++;
     var result=labEvaluate(e),selected=labSelected===e?' selected':'';
-    var summary=e.event_name==='cp'?'公共参数已忽略':(result.errors?result.errors+' 错误':(result.warns?result.warns+' 警告':'校验通过'));
-    html+='<div class="lab-stream-row '+result.status+selected+'" onclick="labSelectCaptured('+i+')"><div class="lab-row-main"><span class="lab-row-name">'+esc(e.event_name||'(空事件名)')+'</span><span class="lab-row-time">'+esc(labEventTimeText(e))+'</span></div><div class="lab-row-result">'+esc(summary)+'</div></div>'
+    var evName=e.event_name||'',isUserProp=!!result.isUserProp;
+    var summary=isUserProp?'用户属性（不是事件）':(e.event_name==='cp'?'公共参数已忽略':(result.errors?result.errors+' 错误':(result.warns?result.warns+' 警告':'校验通过')));
+    var evDesc=eventSpecEvents[evName]||'',evKnown=Object.prototype.hasOwnProperty.call(eventSpecEvents,evName),descHtml;
+    if(isUserProp)descHtml='<span class="lab-row-desc userprop" title="ThinkingData 的用户属性上报，没有事件名，不按事件校验">用户属性上报</span>';
+    else descHtml=evDesc?('<span class="lab-row-desc" title="'+esc(evDesc)+'">'+esc(evDesc)+'</span>')
+                        :(evKnown?('<span class="lab-row-desc missing" title="打点规范已收录，但没有填写事件说明">已收录 · 未写说明</span>')
+                        :(evName?('<span class="lab-row-desc missing" title="打点规范里没有这个事件">规范未收录</span>'):''));
+    var dispName=evName||(isUserProp?('(用户属性上报 · '+esc(String(e.ta_type||''))+' )'):'(空事件名)');
+    html+='<div class="lab-stream-row '+result.status+selected+'" onclick="labSelectCaptured('+i+')"><div class="lab-row-main"><span class="lab-row-name">'+dispName+'</span>'+descHtml+'<span class="lab-row-time">'+esc(labEventTimeText(e))+'</span></div><div class="lab-row-result">'+esc(summary)+'</div></div>'
   }
-  el.innerHTML=html||uiState('empty','没有匹配的抓取记录','请调整事件或参数筛选条件')
+  var hint=document.getElementById('lab-stream-hint');
+  if(hint){
+    var chipCount=labEventFilters.length+labParamFilters.length;
+    if(nameQuery||chipCount){
+      hint.textContent='筛选：'+(labNameQuery?('事件名含「'+labNameQuery+'」'):'')+(labNameQuery&&chipCount?' + ':'')+(chipCount?(chipCount+' 个精确筛选项'):'')+' · 命中 '+shown+' / '+labEvents.length+' 条';
+      hint.style.color='var(--accent2)'
+    }else{
+      hint.textContent='最新事件在上';hint.style.color='var(--text3)'
+    }
+  }
+  el.innerHTML=html||uiState('empty','没有匹配的抓取记录','换个关键词试试，比如只搜 tt，或清空搜索与筛选项')
 }
 function labRenderResult(){
   var verdict=document.getElementById('lab-verdict'),body=document.getElementById('lab-param-body'),meta=document.getElementById('lab-selected-meta'),commonToggle=document.getElementById('lab-common-toggle');if(!verdict||!body)return;
@@ -1375,13 +1538,29 @@ function labRenderResult(){
   if(!event){
     verdict.className='lab-verdict';verdict.innerHTML='<div class="lab-verdict-icon">👈</div><div><div class="lab-verdict-title">请选择一条事件</div><div class="lab-verdict-sub">点击左侧记录查看参数和校验结果</div></div>';body.innerHTML='<tr><td colspan="5"><div class="event-empty" style="padding:42px 12px">暂无参数数据</div></td></tr>';meta.textContent='';return
   }
-  var result=labEvaluate(event),icon=result.status==='error'?'❌':(result.status==='warn'?'⚠️':'✅'),title=result.status==='error'?'校验失败':(result.status==='warn'?'事件已触发，存在缺失参数':'事件已触发，校验通过');
-  verdict.className='lab-verdict '+result.status;verdict.innerHTML='<div class="lab-verdict-icon">'+icon+'</div><div><div class="lab-verdict-title">'+title+'</div><div class="lab-verdict-sub">'+result.errors+' 个错误，'+result.warns+' 个警告'+(result.ignored?'，'+(labShowCommonParams?'已显示 ':'已隐藏 ')+result.ignored+' 个公参':'')+'</div></div>';
-  body.innerHTML=labRowsHtml(result.rows,result.ignored);meta.textContent=(event.event_name||'')+' · '+labEventTimeText(event)
+  var result=labEvaluate(event);
+  var icon=result.isUserProp?'ℹ️':(result.status==='error'?'❌':(result.status==='warn'?'⚠️':'✅'));
+  var title=result.isUserProp?'用户属性上报（不是事件，不参与事件校验）':(result.status==='error'?'校验失败':(result.status==='warn'?'事件已触发，存在缺失参数':'事件已触发，校验通过'));
+  var sub=result.isUserProp?('共 '+result.rows.length+' 个用户属性 · 类型 '+String(event.ta_type||'user_set')):(result.errors+' 个错误，'+result.warns+' 个警告'+(result.ignored?'，'+(labShowCommonParams?'已显示 ':'已隐藏 ')+result.ignored+' 个公参':''));
+  verdict.className='lab-verdict '+result.status;verdict.innerHTML='<div class="lab-verdict-icon">'+icon+'</div><div><div class="lab-verdict-title">'+title+'</div><div class="lab-verdict-sub">'+sub+'</div></div>';
+  body.innerHTML=labRowsHtml(result.rows,result.ignored,event);meta.textContent=(event.event_name||(result.isUserProp?('(用户属性 '+String(event.ta_type||'')+')'):''))+' · '+labEventTimeText(event)
 }
-function labRowsHtml(rows,commonCount){
-  if(!rows.length)return '<tr><td colspan="5"><div class="event-empty" style="padding:38px 12px">'+(commonCount&&!labShowCommonParams?'公参已隐藏，点击“显示公参”查看':'该事件没有规定业务参数')+'</div></td></tr>';
-  return rows.map(function(row){var desc=esc(row.desc||'—'),valueDesc=row.valueDesc?'<div style="margin-top:6px;color:var(--text);white-space:pre-line">取值：\n'+esc(row.valueDesc)+'</div>':'';return '<tr><td><span class="lab-badge '+row.level+'">'+esc(row.label)+'</span></td><td class="lab-field-name">'+esc(row.field)+'</td><td class="lab-field-value">'+esc(String(row.value))+'</td><td>'+esc(String(row.type))+'</td><td style="color:var(--text2);white-space:pre-line">'+desc+valueDesc+'</td></tr>'}).join('')
+function labRowsHtml(rows,commonCount,event){
+  var renderRow=function(row){var desc=esc(row.desc||'—'),valueDesc=row.valueDesc?'<div style="margin-top:6px;color:var(--text);white-space:pre-line">取值：\n'+esc(row.valueDesc)+'</div>':'';return '<tr><td><span class="lab-badge '+row.level+'">'+esc(row.label)+'</span></td><td class="lab-field-name">'+esc(row.field)+'</td><td class="lab-field-value">'+esc(String(row.value))+'</td><td>'+esc(String(row.type))+'</td><td style="color:var(--text2);white-space:pre-line">'+desc+valueDesc+'</td></tr>'};
+  if(!rows.length){
+    // 规范里没有规定业务参数（或事件名不在规范内）时，直接把实际上报的字段列出来，便于对照
+    var props=(event&&event.properties)||{},cpFields=(typeof eventSpecByEvent!=='undefined'&&eventSpecByEvent.cp)||{},fallbackRows=[];
+    for(var field in props){
+      if(Object.prototype.hasOwnProperty.call(cpFields,field)&&!labShowCommonParams)continue;
+      var spec=cpFields[field]||{};
+      fallbackRows.push({level:'pass',field:field,value:labValueText(props[field]),valueDesc:spec.value_desc||'',type:spec.type||'—',desc:spec.desc||'',label:'实际'});
+    }
+    if(!fallbackRows.length)return '<tr><td colspan="5"><div class="event-empty" style="padding:38px 12px">'+(commonCount&&!labShowCommonParams?'公参已隐藏，点击“显示公参”查看':'该事件没有规定业务参数，且未抓到任何上报字段')+'</div></td></tr>';
+    var note='该事件规范里没有规定业务参数，以下为实际上报内容（共 '+fallbackRows.length+' 个字段）';
+    if(commonCount&&!labShowCommonParams)note+='，其中已隐藏 '+commonCount+' 个公参';
+    return '<tr><td colspan="5"><div class="event-empty" style="padding:12px 12px">'+note+'</div></td></tr>'+fallbackRows.map(renderRow).join('')
+  }
+  return rows.map(renderRow).join('')
 }
 function labSelectProblem(index){
   labSelected=labEvents[index];labRenderAll();
@@ -1464,14 +1643,37 @@ async function labGenerateSpecBug(clickEvent,index){
   }catch(e){toast('生成 Bug 失败：'+e.message,false)}
   finally{labBugGeneratingKey='';labRenderProblems()}
 }
+// 跨事件关联校验（服务端 analyze_relations 产出）：一条问题牵涉两条事件，
+// 所以在"打点问题"汇总里单独成行；点击可跳到触发事件那条。
+function labIndexByCursor(cursor){
+  if(cursor===undefined||cursor===null)return -1;
+  for(var i=0;i<labEvents.length;i++)if(labEvents[i].cursor===cursor)return i;
+  return -1;
+}
+function labRenderRelationRows(){
+  if(!labRelations.length)return {html:'',count:0};
+  var html='',count=0;
+  for(var i=0;i<labRelations.length;i++){
+    var issue=labRelations[i]||{},ctx=issue.context||{},trigger=ctx.trigger||{},expect=ctx.expect||{};
+    var level=issue.level==='error'?'error':'warn';
+    var triggerIndex=labIndexByCursor(trigger.cursor),clickable=triggerIndex>=0;
+    var meta=[],levelName=trigger.lvl_ne||expect.lvl_ne;
+    if(levelName)meta.push('关卡 '+esc(levelName));
+    if(trigger.event||expect.event)meta.push(esc((trigger.event||'?')+' → '+(expect.event||'?')));
+    count++;
+    var rowOpen='<div class="lab-problem-row"'+(clickable?' onclick="labSelectProblem('+triggerIndex+')"':'')+'>';
+    html+=rowOpen+'<div class="lab-problem-head"><span class="lab-problem-name">关联校验 · '+esc((trigger.event||'?')+'.'+(issue.field||''))+'</span><span class="lab-badge '+level+'">'+(level==='error'?'取值不一致':'待确认')+'</span><span class="lab-problem-meta">'+meta.join(' · ')+'</span></div><div class="lab-problem-summary"><span class="lab-problem-issue '+level+'">'+esc(issue.msg||'关联取值不一致')+'</span></div></div>'
+  }
+  return {html:html,count:count}
+}
 function labRenderProblems(){
   var list=document.getElementById('lab-problem-list'),count=document.getElementById('lab-problem-count');if(!list||!count)return;
-  var html='',problemCount=0,specCount=eventSpecConsistencyIssues.length;
+  var html='',problemCount=0,specCount=eventSpecConsistencyIssues.length,relationRows=labRenderRelationRows();
   for(var specIndex=0;specIndex<eventSpecConsistencyIssues.length;specIndex++){
     var specIssue=eventSpecConsistencyIssues[specIndex],definitions=(specIssue.events||[]).map(function(item){return '<span class="lab-problem-issue error"><strong>'+esc(item.event)+'</strong> · '+esc(item.type||'未填写')+'</span>'}).join(''),specKey='spec:'+String(specIssue.field||specIndex),specGenerating=labBugGeneratingKey===specKey;
     html+='<div class="lab-problem-row lab-spec-problem"><div class="lab-problem-head"><span class="lab-problem-name">规范错误 · '+esc(specIssue.field||'未知字段')+'</span><span class="lab-badge error">类型不一致</span><button type="button" class="btn btn-secondary lab-problem-bug" onclick="labGenerateSpecBug(event,'+specIndex+')" '+(labBugGeneratingKey?'disabled':'')+'>'+(specGenerating?'生成中...':'生成 Bug')+'</button><span class="lab-problem-meta">涉及 '+(specIssue.events||[]).length+' 个事件</span></div><div class="lab-problem-summary">'+definitions+'<span class="lab-problem-issue error">'+esc(specIssue.msg||'同名字段类型不一致')+'</span></div></div>'
   }
-  if(!labEvents.length&&!specCount){count.textContent='0 条问题记录';list.innerHTML=labRunning?uiState('loading','正在检查打点问题','收到事件后自动汇总错误和警告'):uiState('empty','暂无打点问题','开始抓取后汇总所有错误和警告');return}
+  if(!labEvents.length&&!specCount&&!relationRows.count){count.textContent='0 条问题记录';list.innerHTML=labRunning?uiState('loading','正在检查打点问题','收到事件后自动汇总错误和警告'):uiState('empty','暂无打点问题','开始抓取后汇总所有错误和警告');return}
   for(var i=0;i<labEvents.length;i++){
     var event=labEvents[i],result=labEvaluate(event);if(!result.errors&&!result.warns)continue;
     problemCount++;
@@ -1481,8 +1683,9 @@ function labRenderProblems(){
     var bugKey=labEventBugKey(event),generating=labBugGeneratingKey===bugKey;
     html+='<div class="lab-problem-row" onclick="labSelectProblem('+i+')"><div class="lab-problem-head"><span class="lab-problem-name">'+esc(event.event_name||'(空事件名)')+'</span><span class="lab-badge '+result.status+'">'+esc(totals.join(' / '))+'</span><button type="button" class="btn btn-secondary lab-problem-bug" onclick="labGenerateBug(event,'+i+')" '+(labBugGeneratingKey?'disabled':'')+'>'+(generating?'生成中...':'生成 Bug')+'</button><span class="lab-problem-meta">第 '+recordNo+' 条 · '+esc(labEventTimeText(event))+'</span></div><div class="lab-problem-summary">'+details+'</div></div>'
   }
-  var totalProblems=problemCount+specCount;
-  count.textContent=totalProblems+' 条问题'+(specCount?'（'+specCount+' 条规范错误）':'');list.innerHTML=html||uiState('success','当前未发现打点问题','已检查 '+labEvents.length+' 条事件')
+  html=relationRows.html+html;
+  var totalProblems=problemCount+specCount+relationRows.count;
+  count.textContent=totalProblems+' 条问题'+(specCount?'（'+specCount+' 条规范错误）':'')+(relationRows.count?'（'+relationRows.count+' 条关联校验）':'');list.innerHTML=html||uiState('success','当前未发现打点问题','已检查 '+labEvents.length+' 条事件')
 }
 function labRenderAll(){
   if(!document.getElementById('tab-eventlab'))return;
@@ -1498,10 +1701,11 @@ async function updateSpec(source){
   try{
     var r=await api('/api/events/spec/update','POST',{url:url});
     await loadEventSpec();
-    var conflictCount=r.conflict_count||0,resultText='已从“'+r.sheet+'”更新 '+r.event_count+' 个事件、'+r.count+' 个字段'+(conflictCount?'，发现 '+conflictCount+' 个类型冲突':'，一致性校验通过');
+    var conflictCount=r.conflict_count||0,autoSheets=r.auto_sheets||[],missingSheets=r.missing_sheets||[],hasWarning=!!(conflictCount||missingSheets.length);
+    var resultText='已从“'+r.sheet+'”更新 '+r.event_count+' 个事件、'+r.count+' 个字段'+(conflictCount?'，发现 '+conflictCount+' 个类型冲突':'，一致性校验通过')+(autoSheets.length?'；自动发现新页签：'+autoSheets.join('、'):'')+(missingSheets.length?'；未找到配置页签：'+missingSheets.join('、'):'');
     var labInput=document.getElementById('lab-spec-url'),toolInput=document.getElementById('spec-url');if(labInput)labInput.value=url;if(toolInput)toolInput.value=url;
     var messages=[document.getElementById('spec-update-msg'),document.getElementById('lab-spec-update-msg')];
-    for(var j=0;j<messages.length;j++)if(messages[j]){messages[j].style.color=conflictCount?'#e8b730':'var(--green)';messages[j].textContent=(conflictCount?'⚠️ ':'✅ ')+resultText}
+    for(var j=0;j<messages.length;j++)if(messages[j]){messages[j].style.color=hasWarning?'#e8b730':'var(--green)';messages[j].textContent=(hasWarning?'⚠️ ':'✅ ')+resultText}
     toast(resultText)
   }catch(e){el.style.color='var(--accent)';el.textContent='❌ '+e.message}
   finally{
@@ -1590,6 +1794,19 @@ function generateXlsx(){
   <div style="font-size:24px;font-weight:bold">🐯 萌虎测试平台</div>
   <div style="color:var(--text2);font-size:13px">请使用飞书账号登录后使用</div>
   <button class="btn btn-primary" onclick="location.href='/api/auth/feishu-login'" style="padding:10px 30px;font-size:14px">🔑 使用飞书登录</button>
+</div>
+<div id="lab-rules-mask" class="lab-rules-mask" onclick="if(event.target===this)labHideRules()">
+  <div class="lab-rules-panel">
+    <div class="lab-rules-head">
+      <h3>📖 现在生效的校验规则</h3>
+      <span id="lab-rules-hint" class="lab-rules-hint"></span>
+      <div class="lab-rules-head-actions">
+        <button class="btn btn-secondary btn-sm" onclick="labLoadRules()">刷新</button>
+        <button class="btn btn-secondary btn-sm" onclick="labHideRules()">关闭</button>
+      </div>
+    </div>
+    <div id="lab-rules-body" class="lab-rules-body"></div>
+  </div>
 </div>
 </body>
 </html>

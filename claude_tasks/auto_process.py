@@ -6,6 +6,7 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -122,6 +123,13 @@ def process_bug(bug_id):
             _save_bug(bug)
             print(f'DONE: {bug_id} ({mode} preview without AI)')
             return
+
+    # 详细 Bug 依赖 AI 整理：先确认本机 claude 可用，没有就直接标记失败，
+    # 避免服务器上无 AI 时白等飞书搜索后再报底层 FileNotFoundError。
+    if not shutil.which(CLAUDE):
+        _mark_failed(bug_id, f'未检测到 AI（claude），详细提交需要安装 Claude Code')
+        print(f'ERROR: {bug_id} claude not found: {CLAUDE}', flush=True)
+        return
 
     # 从飞书测试用例存档搜索相关用例（不持锁，可能耗时）
     keywords = [kw for kw in re.split(r'[【】\s,.，。、：:；;]+', brief) if len(kw) >= 2]

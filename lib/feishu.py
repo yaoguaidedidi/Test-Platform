@@ -20,6 +20,7 @@
 
 import json
 import os
+import sys
 import re
 import time
 import hashlib
@@ -36,6 +37,13 @@ import difflib
 # 飞书凭证文件位置（feishu-user-plugin 工具管理这个文件）
 CREDS_PATH = os.path.expanduser('~/.feishu-user-plugin/credentials.json')
 
+# 飞书用户 token 刷新用的跨进程锁：必须与 feishu-user-plugin 用同一把锁，
+# 否则两个刷新方会并发轮换同一个 refresh_token，导致一方报 20026。
+_REFRESH_LOCK_PATH = os.path.join(os.path.dirname(CREDS_PATH), 'uat-refresh.lock')
+_REFRESH_LOCK_STALE_SECONDS = 30   # 与插件一致：超过 30 秒视为死锁，可清理
+_REFRESH_LOCK_POLL_SECONDS = 0.2   # 轮询间隔
+_REFRESH_LOCK_TIMEOUT_SECONDS = 20 # 抢锁超时
+
 # 数据缓存目录
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 CACHE_FILE = os.path.join(CACHE_DIR, 'survey_cache.json')
@@ -45,6 +53,12 @@ TEST_CASE_SEARCH_CACHE_DIR = os.path.join(TEST_CASE_CACHE_DIR, 'search')
 
 # 飞书 API 的根地址
 BASE_URL = 'https://open.feishu.cn/open-apis'
+
+# 飞书域名国内直连即可，不经过系统代理。
+# 否则本机开着 Proxyman / Charles 这类抓包工具（会改系统代理到 127.0.0.1:9090）
+# 时，Python 的 requests 会走它们做中间人，而它自签的证书 certifi 不认，
+# 直接报 SSLError: CERTIFICATE_VERIFY_FAILED（self-signed certificate in certificate chain）。
+NO_PROXY_MAP = {'http': None, 'https': None}
 
 # 飞书多维表格的 ID（相当于"数据库名"和"表名"）
 APP_TOKEN = 'Goi4bAXU1ahb1ksNhcPc4gtFnue'   # 多维表格应用 ID
@@ -110,6 +124,81 @@ def _save_refreshed_creds(access_token, refresh_token, expires_at):
             os.unlink(temp_path)
 
 
+def _acquire_refresh_lock():
+    """用 O_CREAT|O_EXCL 抢占锁文件，与 feishu-user-plugin 的 open(path,'wx') 互斥。
+    返回 True 表示抢到锁（已创建锁文件）；False 表示超时（调用方应继续，靠自愈兜底）。
+    """
+    os.makedirs(os.path.dirname(_REFRESH_LOCK_PATH), exist_ok=True)
+    deadline = time.time() + _REFRESH_LOCK_TIMEOUT_SECONDS
+    while True:
+        try:
+            fd = os.open(_REFRESH_LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, f'{os.getpid()}\n'.encode('utf-8'))
+            os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                # 只有确属过期的死锁才清理，避免误删对方刚抢到的锁
+                if (time.time() - os.stat(_REFRESH_LOCK_PATH).st_mtime) > _REFRESH_LOCK_STALE_SECONDS:
+                    try:
+                        os.unlink(_REFRESH_LOCK_PATH)
+                    except FileNotFoundError:
+                        pass
+                    continue
+            except FileNotFoundError:
+                continue
+            if time.time() >= deadline:
+                print('[feishu] refresh lock timeout; proceeding without mutual exclusion',
+                      file=sys.stderr)
+                return False
+            time.sleep(_REFRESH_LOCK_POLL_SECONDS)
+        except OSError as e:
+            if time.time() >= deadline:
+                print(f'[feishu] refresh lock error; proceeding without mutual exclusion ({e})',
+                      file=sys.stderr)
+                return False
+            time.sleep(_REFRESH_LOCK_POLL_SECONDS)
+
+
+def _release_refresh_lock():
+    try:
+        os.unlink(_REFRESH_LOCK_PATH)
+    except FileNotFoundError:
+        pass
+
+
+def _is_refresh_chain_error(exc):
+    """判断异常是否属于 refresh_token 被拒/轮换失效（而非网络/服务器临时错误）。"""
+    low = str(exc).lower()
+    return ('20026' in str(exc)
+            or 'refresh token not found' in low
+            or 'invalid_grant' in low
+            or '20064' in str(exc))
+
+
+def _adopt_peer_token_if_newer(attempted_refresh):
+    """自愈：refresh_token 轮换冲突时，对方往往已把新 token 写到磁盘。
+    只有当磁盘上出现"不同的 refresh_token + 仍有效的 access_token"时才采纳；
+    若磁盘仍是当前死 token，则返回 None，交由上层判定为真正过期。
+    """
+    try:
+        creds = _load_creds()
+    except Exception:
+        return None
+    fresh = creds.get('LARK_USER_ACCESS_TOKEN', '')
+    fresh_exp = int(creds.get('LARK_UAT_EXPIRES') or 0)
+    on_disk_refresh = creds.get('LARK_USER_REFRESH_TOKEN', '')
+    if (fresh and on_disk_refresh
+            and on_disk_refresh != attempted_refresh
+            and fresh_exp > time.time() + 60):
+        _token = fresh
+        _token_expiry = fresh_exp - 60
+        print('[feishu] refresh_token rejected (peer rotated); adopted fresher persisted token',
+              file=sys.stderr)
+        return _token
+    return None
+
+
 def _refresh_token():
     """
     用 refresh_token 向飞书换一个新的 access_token。
@@ -117,46 +206,59 @@ def _refresh_token():
     什么时候调用？
       access_token 过期后，_get_token() 会自动调用这个函数。
 
-    调飞书的哪个接口？
-      POST https://open.feishu.cn/open-apis/authen/v1/refresh_access_token
-
-    请求参数：
-      grant_type: "refresh_token"     — 告诉飞书"我要刷新 token"
-      refresh_token: "xxx"           — 长期刷新令牌
-      app_id: "cli_xxx"              — 应用 ID
-      app_secret: "xxx"              — 应用密钥
-
-    如果 refresh_token 也过期了怎么办？
-      飞书会返回 code=20026 "refresh token not found"
-      这时候需要用户重新 OAuth 授权（工具页的"重新授权"按钮）
+    与 feishu-user-plugin 的关系：
+      双方共用同一把跨进程锁（uat-refresh.lock），避免并发轮换同一个 refresh_token；
+      即使仍发生轮换冲突（20026 / invalid_grant），也会先自愈：读取磁盘上对方刷好的
+      新 token 并直接采用，而不是逼用户重新授权。仅当磁盘上仍是被拒绝的死 token 时，
+      才抛错（此时才真正需要重新授权）。
     """
     global _token, _token_expiry
 
-    lock_path = f'{CREDS_PATH}.refresh.lock'
-    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
-    with open(lock_path, 'a+') as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+    acquired = _acquire_refresh_lock()
+    try:
         creds = _load_creds()
-        r = requests.post(f'{BASE_URL}/authen/v1/refresh_access_token', json={
-            'grant_type': 'refresh_token',
-            'refresh_token': creds['LARK_USER_REFRESH_TOKEN'],
-            'app_id': creds['LARK_APP_ID'],
-            'app_secret': creds['LARK_APP_SECRET'],
-        }, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        if data.get('code') != 0:
-            raise Exception(
-                f'Token refresh failed: code={data.get("code")} msg={data.get("msg")}'
-            )
+
+        # 拿锁后再看一眼磁盘：可能对方（插件/其它进程）已经刷新好了
+        fresh = creds.get('LARK_USER_ACCESS_TOKEN', '')
+        fresh_exp = int(creds.get('LARK_UAT_EXPIRES') or 0)
+        if fresh and fresh_exp > time.time() + 60:
+            _token = fresh
+            _token_expiry = fresh_exp - 60
+            return _token
+
+        attempted_refresh = creds.get('LARK_USER_REFRESH_TOKEN', '')
+        if not attempted_refresh:
+            raise Exception('UAT expired and no refresh token. Run: npx feishu-user-plugin oauth')
+
+        try:
+            r = requests.post(f'{BASE_URL}/authen/v1/refresh_access_token', json={
+                'grant_type': 'refresh_token',
+                'refresh_token': attempted_refresh,
+                'app_id': creds['LARK_APP_ID'],
+                'app_secret': creds['LARK_APP_SECRET'],
+            }, timeout=10, proxies=NO_PROXY_MAP)
+            r.raise_for_status()
+            data = r.json()
+            if data.get('code') != 0:
+                raise Exception(
+                    f'Token refresh failed: code={data.get("code")} msg={data.get("msg")}'
+                )
+        except Exception as exc:
+            healed = _adopt_peer_token_if_newer(attempted_refresh) if _is_refresh_chain_error(exc) else None
+            if healed is not None:
+                return healed
+            raise
 
         _token = data['access_token']
-        refresh_token = data.get('refresh_token') or creds['LARK_USER_REFRESH_TOKEN']
+        refresh_token = data.get('refresh_token') or attempted_refresh
         expires_in = data.get('expires_in') or data.get('expire') or 7200
         expires_at = int(time.time() + expires_in)
         _token_expiry = expires_at - 60
         _save_refreshed_creds(_token, refresh_token, expires_at)
         return _token
+    finally:
+        if acquired:
+            _release_refresh_lock()
 
 
 def _get_token(force_refresh=False):
@@ -229,7 +331,8 @@ def _api(method, path, **kwargs):
 
     # 第一次请求
     headers['Authorization'] = f'Bearer {_get_token()}'
-    r = requests.request(method, url, headers=headers, timeout=30, **kwargs)
+    r = requests.request(method, url, headers=headers, timeout=30,
+                         proxies=NO_PROXY_MAP, **kwargs)
 
     # 飞书有些接口用 HTTP 200 + 业务错误码表示 token 过期
     try:
@@ -390,7 +493,8 @@ def download_attachment(file_token, save_dir=None):
     headers = {'Authorization': f'Bearer {_get_token()}'}
 
     # allow_redirects=True：飞书会重定向到真正的下载地址
-    r = requests.get(url, headers=headers, timeout=120, allow_redirects=True)
+    r = requests.get(url, headers=headers, timeout=120, allow_redirects=True,
+                     proxies=NO_PROXY_MAP)
     r.raise_for_status()
 
     # 从响应头提取文件名（Content-Disposition: attachment; filename="xxx.png"）

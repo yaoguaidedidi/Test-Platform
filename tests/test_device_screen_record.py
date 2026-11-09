@@ -365,6 +365,66 @@ class DeviceScreenRecorderTests(unittest.TestCase):
             ]
             self.assertEqual(len(selected_inputs), 3)
 
+    def test_snapshot_anchor_out_of_range_raises_instead_of_tail(self):
+        """带时间戳的片段：锚点超出保留范围时不应回退成最近片段，
+        否则生成的录屏与报错时刻无关，必须明确失败。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            recorder = DeviceScreenRecorder(
+                tmp, segment_seconds=15, history_seconds=60,
+                before_seconds=40, after_seconds=20,
+            )
+            session_id = '20260807_182000_oor'
+            directory = os.path.join(recorder.root, session_id)
+            os.makedirs(directory)
+            segments = self._make_window_segments(
+                directory, count=6, start=100.0
+            )
+            recorder._session = {
+                'id': session_id, 'device_id': 'emulator-5554',
+                'status': 'stopped', 'segments': list(segments),
+                'snapshot_count': 0, 'last_snapshot': '',
+            }
+            # 片段覆盖 100~190s，锚点 300s 完全超出
+            with self.assertRaisesRegex(
+                RuntimeError, '超出循环录屏保留范围'
+            ):
+                recorder.snapshot(
+                    os.path.join(tmp, 'uploads'), session_id,
+                    anchor_time=300.0,
+                )
+
+    def test_can_recover_window_matches_anchor_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            recorder = DeviceScreenRecorder(
+                tmp, segment_seconds=15, history_seconds=60,
+                before_seconds=40, after_seconds=20,
+            )
+            session_id = '20260807_183000_recover'
+            directory = os.path.join(recorder.root, session_id)
+            os.makedirs(directory)
+            segments = self._make_window_segments(
+                directory, count=6, start=100.0
+            )
+            recorder._session = {
+                'id': session_id, 'device_id': 'emulator-5554',
+                'status': 'stopped', 'segments': list(segments),
+                'snapshot_count': 0, 'last_snapshot': '',
+            }
+            recorder._write_meta()
+
+            # 片段 100~190s，窗口 [130-40,130+20]=[90,150] 有重叠 → 可恢复
+            self.assertTrue(recorder.can_recover_window(
+                session_id, 130.0
+            ))
+            # 锚点 300s 窗口 [260,320] 与片段无重叠 → 不可恢复
+            self.assertFalse(recorder.can_recover_window(
+                session_id, 300.0
+            ))
+            # 无会话 → 不可恢复
+            self.assertFalse(recorder.can_recover_window(
+                'no-such-session', 130.0
+            ))
+
     def test_snapshot_rejects_mismatched_session(self):
         with tempfile.TemporaryDirectory() as tmp:
             recorder = DeviceScreenRecorder(tmp)

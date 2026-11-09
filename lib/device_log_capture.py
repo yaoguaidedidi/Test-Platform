@@ -98,6 +98,9 @@ def _safe_id(value):
     return value
 
 
+SIGNATURE_LIMIT = 140  # 报错签名保留的字符数(见 _normalise_signature)
+
+
 class DeviceLogCapture:
     def __init__(
         self, data_dir, part_size=50 * 1024 * 1024, on_problem=None,
@@ -118,6 +121,9 @@ class DeviceLogCapture:
         self._recent = deque(maxlen=16)
         self._context_after = {}
         self._on_problem = on_problem
+        # 被用户忽略的报错签名(跨会话:不录屏、不进问题总览)
+        self._ignored_signatures = self._load_ignored()
+        self._migrate_ignored_signatures()
 
     def environment(self):
         tools = {'adb': bool(shutil.which('adb'))}
@@ -259,13 +265,18 @@ class DeviceLogCapture:
         with self._lock:
             current_id = (self._session or {}).get('id', '')
             if not session_id or session_id == current_id:
-                rows = [self._problem_summary(item) for item in self._problems.values()]
+                rows = [
+                    self._problem_summary(item)
+                    for item in self._problems.values()
+                    if not self._is_ignored_problem(item)
+                ]
                 resolved_id = current_id
             else:
                 resolved_id = _safe_id(session_id)
                 rows = [
                     self._problem_summary(item)
                     for item in self._load_problems(resolved_id).values()
+                    if not self._is_ignored_problem(item)
                 ]
         rows.sort(key=lambda item: item.get('last_cursor', 0), reverse=True)
         return {'ok': True, 'session_id': resolved_id, 'problems': rows}
@@ -464,6 +475,125 @@ class DeviceLogCapture:
                 self._context_after = {}
         return {'ok': True}
 
+    def clear_problems(self, session_id=''):
+        """清空问题总览(保留当前日志抓取继续)。"""
+        with self._lock:
+            if session_id:
+                current_id = (self._session or {}).get('id', '')
+                if current_id and session_id != current_id:
+                    # 清理非当前会话的问题文件(保留该会话其他数据)
+                    path = os.path.join(
+                        self.root, _safe_id(session_id), 'problems.json'
+                    )
+                    if os.path.exists(path):
+                        os.remove(path)
+                    return {'ok': True}
+            self._problems = {}
+            self._context_after = {}
+            self._write_problems()
+        return {'ok': True}
+
+    def _ignored_file(self):
+        return os.path.join(
+            os.path.dirname(self.root), 'ignored_problem_signatures.json'
+        )
+
+    def _load_ignored(self):
+        """加载已忽略报错 {signature: {'title','ignored_at'}}。"""
+        try:
+            path = self._ignored_file()
+            if os.path.exists(path):
+                with open(path, encoding='utf-8') as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    # 原始键直接返回,归一化/截断迁移统一交给
+                    # _migrate_ignored_signatures(),以便把结果写回文件
+                    return dict(data)
+                if isinstance(data, list):  # 兼容旧格式(set 存成的 list)
+                    return {s: {'title': s} for s in data}
+        except Exception:
+            pass
+        return {}
+
+    def _normalise_problem_signature(self, signature):
+        """把签名里的数字(进程号等)归一化并按 SIGNATURE_LIMIT 截断,保证跨会话稳定。
+
+        直接复用 _normalise_signature,保证"写忽略列表"和"识别报错"用同一套规则,
+        否则长签名与短签名对不上,会出现"忽略了还会再冒出来"的问题。
+        """
+        return self._normalise_signature(signature)
+
+    def _migrate_ignored_signatures(self):
+        """把历史忽略记录迁移到当前签名规则(去 PID、截断到 SIGNATURE_LIMIT)。"""
+        normalised = {}
+        for sig, info in self._ignored_signatures.items():
+            normalised.setdefault(self._normalise_problem_signature(sig), info)
+        if list(normalised.keys()) != list(self._ignored_signatures.keys()):
+            self._ignored_signatures = normalised
+            self._save_ignored()
+
+    def _is_ignored_problem(self, item):
+        """该问题(按归一化签名)是否已被用户忽略。"""
+        if not item:
+            return False
+        sig = self._normalise_problem_signature(item.get('signature', ''))
+        return bool(sig) and sig in self._ignored_signatures
+
+    def _save_ignored(self):
+        try:
+            path = self._ignored_file()
+            tmp = path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(self._ignored_signatures, f,
+                          ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        except Exception:
+            pass
+
+    def ignore_problem(self, problem_id, session_id=''):
+        """忽略指定报错:该报错(签名)不再录屏、不再进问题总览。"""
+        problem_id = _safe_id(problem_id)
+        with self._lock:
+            item = self._problems.get(problem_id)
+            sig = self._normalise_problem_signature(
+                (item or {}).get('signature', '')
+            )
+            if sig:
+                self._ignored_signatures[sig] = {
+                    'title': (item or {}).get('title', sig),
+                    'message': (item or {}).get('message', ''),
+                    'ignored_at': (item or {}).get('last_at')
+                        or datetime.now().isoformat(timespec='seconds'),
+                }
+                self._save_ignored()
+            self._problems.pop(problem_id, None)
+            self._context_after.pop(problem_id, None)
+            self._write_problems()
+        return {'ok': True, 'signature': sig}
+
+    def ignored_problems(self):
+        """返回已忽略的报错列表(用于恢复)。"""
+        with self._lock:
+            rows = []
+            for sig, info in self._ignored_signatures.items():
+                rows.append({
+                    'signature': sig,
+                    'title': info.get('title', sig),
+                    'message': info.get('message', ''),
+                    'ignored_at': info.get('ignored_at', ''),
+                })
+            rows.sort(key=lambda r: r['ignored_at'], reverse=True)
+            return {'ok': True, 'ignored': rows}
+
+    def unignore_problem(self, signature):
+        """取消忽略:恢复该报错的录屏和问题总览显示。"""
+        with self._lock:
+            self._ignored_signatures.pop(signature, None)
+            self._save_ignored()
+        return {'ok': True}
+
     def clear_sessions(self):
         """删除全部已结束会话，保留仍在采集的当前会话。"""
         with self._lock:
@@ -618,13 +748,16 @@ class DeviceLogCapture:
             self._recent.append(context_line)
             detected = self._detect_problem(parsed)
             if detected:
-                is_new = self._record_problem(detected)
-                if (
-                    is_new and self._on_problem
-                    and detected.get('kind') != 'network'
-                ):
-                    callback_problem = dict(self._problems[detected['id']])
-                    callback_problem['session_id'] = self._session['id']
+                if detected.get('signature') in self._ignored_signatures:
+                    detected = None
+                else:
+                    is_new = self._record_problem(detected)
+                    if (
+                        is_new and self._on_problem
+                        and detected.get('kind') != 'network'
+                    ):
+                        callback_problem = dict(self._problems[detected['id']])
+                        callback_problem['session_id'] = self._session['id']
         if callback_problem:
             try:
                 self._on_problem(callback_problem)
@@ -713,19 +846,21 @@ class DeviceLogCapture:
                 'id', 'kind', 'severity', 'title', 'message', 'source',
                 'level', 'first_at', 'last_at', 'first_cursor', 'last_cursor',
                 'first_epoch', 'last_epoch', 'count', 'bug_id',
-                'recording_status', 'recording_duration',
+                'recording_status', 'recording_duration', 'recording_error',
             )
         }
 
     @staticmethod
-    def _normalise_signature(text):
+    def _normalise_signature(text, limit=SIGNATURE_LIMIT):
         value = (text or '').lower()
         value = re.sub(r'0x[0-9a-f]+', '<hex>', value)
         value = re.sub(
             r'\b[0-9a-f]{8}-[0-9a-f-]{27,}\b', '<uuid>', value
         )
         value = re.sub(r'\b\d+(?:\.\d+)?(?:ms|s|kb|mb|gb)?\b', '<n>', value)
-        return re.sub(r'\s+', ' ', value).strip()[:500]
+        # 只取前 limit 个字符做签名:崩溃上报里带整段堆栈,取全量会让"同一个报错"
+        # 因为堆栈长度不同被拆成多个签名,出现"忽略了还会再冒出来"的问题
+        return re.sub(r'\s+', ' ', value).strip()[:limit]
 
     @staticmethod
     @staticmethod
@@ -810,8 +945,12 @@ class DeviceLogCapture:
             ) else 'error', 'error'
         else:
             return None
+        # source 里的进程号(PID)每次进游戏都变,必须归一化,否则跨会话签名不稳定
+        source_key = re.sub(
+            r'\b\d+(?:\.\d+)?\b', '<n>', source.lower()
+        )
         signature = '|'.join((
-            kind, source.lower(), self._normalise_signature(message)
+            kind, source_key, self._normalise_signature(message)
         ))
         problem_id = hashlib.sha1(signature.encode('utf-8')).hexdigest()[:12]
         return {

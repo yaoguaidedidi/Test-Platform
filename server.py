@@ -32,6 +32,7 @@ import sys           # 系统相关（修改模块搜索路径等）
 import time          # 时间戳、日期格式化
 from datetime import datetime  # 日志时间转时间戳
 import urllib.parse  # URL 解析（把 /api/bug/queue/xxx 拆成路径和参数）
+import ipaddress      # 判断内网 IP，开放局域网访问
 import glob          # 文件名匹配（用于搜索本地 xlsx 测试用例文件）
 import subprocess    # 启动外部进程（调 claude -p、npx 等命令）
 import threading     # 后台冻结异常出现前的循环录屏
@@ -47,12 +48,12 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler  # Python �
 # 第二部分：配置
 # ============================================================
 
-PORT = 8898  # 服务器监听的端口号。浏览器访问 http://127.0.0.1:8898
-             # 127.0.0.1 表示"本机"，所以只有你的电脑能访问
+PORT = 8898  # 服务器监听的端口号。浏览器访问 http://192.168.60.238:8898
+             # 绑定 0.0.0.0，本机与局域网内其他设备都能访问
 
-# 飞书 OAuth 登录回调地址（部署到服务器时改成服务器域名 + 环境变量覆盖）
+# 飞书 OAuth 登录回调地址（内网访问固定为本机内网 IP；换环境可用 HUTEST_AUTH_REDIRECT 覆盖）
 AUTH_REDIRECT_URI = os.environ.get(
-    'HUTEST_AUTH_REDIRECT', 'http://127.0.0.1:8898/api/auth/callback'
+    'HUTEST_AUTH_REDIRECT', 'http://192.168.60.238:8898/api/auth/callback'
 )
 _AUTH_SESSION_COOKIE = 'hutest_session'
 _AUTH_SESSION_TTL = 30 * 86400  # 登录会话有效期：30 天
@@ -73,12 +74,60 @@ FEISHU_LOGIN_SCOPES = (
     ' search:docs:read'          # 测试用例搜索
 )
 
-# 打点规范只从这个页签同步。如果飞书页签改名，可在启动前设置：
-# EVENT_SPEC_SHEET_TITLE="新页签名" ./start.sh
-EVENT_SPEC_SHEET_TITLE = os.environ.get(
-    'EVENT_SPEC_SHEET_TITLE',
-    '次留版本test2打点（正式内容）',
-).strip()
+# 打点规范来源页签（可选，逗号分隔）。不配置时自动识别表格里所有有效的打点页签；
+# 配置后这些页签优先读取，同时仍会自动发现其它符合条件的页签。
+#   EVENT_SPEC_SHEET_TITLES="新手漏斗打点,新手漏斗打点_a组,新手漏斗打点_b组,次留版本打点（正式内容）" ./start.sh
+EVENT_SPEC_SHEET_TITLES = [
+    t.strip() for t in os.environ.get(
+        'EVENT_SPEC_SHEET_TITLES',
+        os.environ.get(
+            'EVENT_SPEC_SHEET_TITLE',
+            '新手漏斗打点,新手漏斗打点_a组,新手漏斗打点_b组,次留版本打点（正式内容）,数数打点,37打点',
+        ),
+    ).split(',') if t.strip()
+]
+EVENT_SPEC_AUTO_DISCOVER = os.environ.get(
+    'EVENT_SPEC_AUTO_DISCOVER', '1'
+).strip().lower() not in ('0', 'false', 'no', 'off')
+EVENT_SPEC_SHEET_EXCLUDE_MARKERS = ('废弃',)
+
+# 飞书请求不走系统代理（本机开着 Proxyman 之类抓包工具时，
+# 中间人证书会让 requests 报 CERTIFICATE_VERIFY_FAILED）
+NO_PROXY_MAP = {'http': None, 'https': None}
+
+
+def cell_text(value):
+    """把飞书表格单元格转成纯文本。
+
+    飞书对「带格式的文本」返回的不是字符串，而是富文本分段数组，形如：
+        [{'segmentStyle': {'bold': True, ...}, 'text': '进关面板', 'type': 'text'}, ...]
+    早前直接 str() 会把这坨 JSON 原样打印到「取值」列里（pop_fr 的弹出来源就是这个问题），
+    这里按段把 text 拼起来，只保留可读文字。
+    """
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, (int, float)):
+        return str(value).strip()
+    if isinstance(value, (list, tuple)):
+        return ''.join(cell_text(item) for item in value).strip()
+    if isinstance(value, dict):
+        for key in ('text', 'value', 'name'):
+            if key in value:
+                return cell_text(value[key])
+        return ''
+    return str(value).strip()
+
+
+def looks_like_event_spec(rows):
+    """页签首行是否像打点规范表：事件名 + 字段名 + 说明/取值/类型。"""
+    if not rows:
+        return False
+    header = [cell_text(value) for value in rows[0][:4]]
+    return bool(header) and header[0] == '事件名' and '字段名' in header[1:]
 
 
 def find_event_field_type_conflicts(event_fields):
@@ -256,6 +305,7 @@ def _session_bug_recording_worker(bug_id, session_id, click_epoch):
 def _problem_bug_recording_worker(bug_id, problem_id, session_id, anchor_epoch):
     """后台确保问题 Bug 附带现场录屏（问题前 60 秒 + 后 20 秒），不阻塞提交。"""
     recording_path = ''
+    skip_fallback = False
     try:
         # 优先等自动冻结完成（问题出现时已触发，但可能排队），上限 80 秒
         deadline = time.monotonic() + 80
@@ -268,10 +318,26 @@ def _problem_bug_recording_worker(bug_id, problem_id, session_id, anchor_epoch):
             if ready_path and os.path.isfile(ready_path):
                 recording_path = ready_path
                 break
+            if latest.get('recording_status') == 'unavailable':
+                # 签名去重/网络错误：明确不需要录屏，放弃兜底
+                skip_fallback = True
+                break
             if latest.get('recording_status') == 'failed':
+                # 自动冻结失败：退出等待，改走兜底生成（窗口还在则恢复）
                 break
             time.sleep(1)
-        if not (recording_path and os.path.isfile(recording_path)):
+        if (
+            not (recording_path and os.path.isfile(recording_path))
+            and not skip_fallback
+        ):
+            # 兜底前先确认报错时刻仍在循环录屏保留范围内：
+            # 超出范围时缓冲区已无该时段画面，生成出来也是错误时段，直接失败。
+            if not _device_screen_recorder.can_recover_window(
+                session_id, anchor_epoch
+            ):
+                raise RuntimeError(
+                    '报错时刻已超出循环录屏保留范围，无法生成现场录屏'
+                )
             # 自动冻结不可用，兜底生成（加锁避免与自动冻结并发）
             with _problem_recording_lock:
                 video_path, _recording_info = _device_screen_recorder.snapshot(
@@ -279,6 +345,8 @@ def _problem_bug_recording_worker(bug_id, problem_id, session_id, anchor_epoch):
                     anchor_time=anchor_epoch,
                 )
             recording_path = video_path
+        if not (recording_path and os.path.isfile(recording_path)):
+            raise RuntimeError('现场录屏不可用，本次提交纯日志')
         bug = get_bug(bug_id)
         if bug is None:
             return
@@ -754,10 +822,17 @@ class HuTestHandler(BaseHTTPRequestHandler):
         if not origin:
             return True
         try:
-            host = urllib.parse.urlparse(origin).hostname
-            return host in ('127.0.0.1', 'localhost', '::1')
+            host = urllib.parse.urlparse(origin).hostname or ''
         except ValueError:
             return False
+        # 允许本机及局域网私网 IP 访问，方便内网其他设备打开平台
+        if host in ('127.0.0.1', 'localhost', '::1', '0.0.0.0'):
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+        except ValueError:
+            return False
+        return ip.is_private or ip.is_loopback or ip.is_link_local
 
     def _add_cors_header(self):
         origin = self.headers.get('Origin')
@@ -785,7 +860,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
 
     def _html(self, path=None):
         """
-        返回 HTML 页面 —— 浏览器访问 http://127.0.0.1:8898 时就看这个。
+        返回 HTML 页面 —— 浏览器打开平台首页时就看这个。
 
         参数:
             path: str - HTML 文件路径，默认用 static/index.html
@@ -851,6 +926,21 @@ class HuTestHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get('Content-Length', 0))
         if length == 0:
             return {}
+
+        # 处理 Expect: 100-continue。
+        # curl（-F 上传 >1KB）、Safari 等客户端在发较大 body 前会先只发 headers，
+        # 等服务器回 100 Continue 再发 body。而本服务器 protocol_version 是默认的
+        # HTTP/1.0，Python 的 parse_request 只在 protocol_version >= HTTP/1.1 时才会
+        # 调用 handle_expect_100()，于是没人回这个 100 —— 客户端一直等、服务器一直等，
+        # 最终连接被断开：浏览器报 "Failed to fetch"，服务器侧 rfile.read 抛
+        # OSError: [Errno 9] Bad file descriptor。这里手动补上 100 Continue。
+        if self.headers.get('Expect', '').lower() == '100-continue':
+            try:
+                self.send_response_only(100)
+                self.end_headers()
+                self.wfile.flush()
+            except OSError:
+                return {}
 
         raw = self.rfile.read(length)
         ct = self.headers.get('Content-Type', '')
@@ -1030,6 +1120,8 @@ class HuTestHandler(BaseHTTPRequestHandler):
             self._handle_events(qs)
         elif path == '/api/events/spec':
             self._handle_events_spec()
+        elif path == '/api/event-rules':
+            self._handle_event_rules()
         elif path == '/api/log-capture/environment':
             self._json(_device_log_capture.environment())
         elif path == '/api/log-capture/devices':
@@ -1082,6 +1174,8 @@ class HuTestHandler(BaseHTTPRequestHandler):
                 ))
             except Exception as e:
                 self._error(str(e), 400)
+        elif path == '/api/log-capture/problems/ignored':
+            self._json(_device_log_capture.ignored_problems())
         elif path.startswith('/api/log-capture/problems/'):
             problem_id = urllib.parse.unquote(path.split('/')[-1])
             try:
@@ -1225,6 +1319,18 @@ class HuTestHandler(BaseHTTPRequestHandler):
             self._handle_screen_record_save(body)
         elif path == '/api/log-capture/bug':
             self._handle_log_session_bug(body)
+        elif path == '/api/log-capture/problems/clear':
+            self._json(_device_log_capture.clear_problems(
+                body.get('session_id', '') if isinstance(body, dict) else ''
+            ))
+        elif path.startswith('/api/log-capture/problems/') and path.endswith('/ignore'):
+            problem_id = urllib.parse.unquote(path.split('/')[-2])
+            self._json(_device_log_capture.ignore_problem(problem_id))
+        elif path == '/api/log-capture/ignored/unignore':
+            sig = ''
+            if isinstance(body, dict):
+                sig = body.get('signature', '') or ''
+            self._json(_device_log_capture.unignore_problem(sig))
         elif path.startswith('/api/log-capture/problems/') and path.endswith('/bug'):
             problem_id = urllib.parse.unquote(path.split('/')[-2])
             self._handle_log_problem_bug(problem_id, body)
@@ -1455,7 +1561,9 @@ class HuTestHandler(BaseHTTPRequestHandler):
             if recording_path and os.path.isfile(recording_path):
                 attachments.append(recording_path)
                 recording_status = 'ready'
-            elif need_recording:
+            elif need_recording and (
+                problem.get('recording_status') != 'unavailable'
+            ):
                 # 录屏后台确保（等自动冻结完成或兜底生成），先返回预览不阻塞
                 recording_status = 'pending'
             session = (_device_log_capture.status().get('session') or {})
@@ -1925,7 +2033,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
             events = _event_tracker.events_since(since)
         else:
             events = all_events
-        from lib.event_tracker import analyze_events
+        from lib.event_tracker import analyze_events, analyze_relations
         self._json({
             'ok': True,
             'events': events,
@@ -1933,6 +2041,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
             'cursor': _event_tracker.latest_cursor,
             'running': _event_tracker.is_running,
             'issues': analyze_events(all_events),
+            'relations': analyze_relations(all_events),
         })
 
     def _handle_events_start(self):
@@ -1942,6 +2051,14 @@ class HuTestHandler(BaseHTTPRequestHandler):
             self._json({'ok': True, 'running': True})
         except Exception as e:
             self._error(f'启动失败: {e} (请确认模拟器已连接)', 500)
+
+    def _handle_event_rules(self):
+        """返回当前生效的全部校验规则（界面「校验规则」面板用）。"""
+        from lib.event_tracker import describe_rules
+        try:
+            self._json({'ok': True, **describe_rules()})
+        except Exception as e:
+            self._error(f'读取校验规则失败: {e}', 500)
 
     def _handle_events_spec(self):
         """返回打点规范"""
@@ -1984,56 +2101,102 @@ class HuTestHandler(BaseHTTPRequestHandler):
                 token = sheet_match.group(1)
             meta = _fapi('GET', '/sheets/v2/spreadsheets/' + token + '/metainfo')
             sheets = meta.get('sheets', [])
-            # 只读取配置的规范页签，故意忽略链接里的 ?sheet=xxx。
-            target = next(
-                (
-                    s for s in sheets
-                    if s.get('title', '').strip() == EVENT_SPEC_SHEET_TITLE
-                ),
-                None,
-            )
-            if not target:
-                self._error(f'未找到规范页签“{EVENT_SPEC_SHEET_TITLE}”', 400)
+            # 故意忽略链接里的 ?sheet=xxx：一次同步整本表格里的全部规范页签。
+            sheets_by_title = {
+                s.get('title', '').strip(): s for s in sheets
+            }
+            targets = []
+            target_ids = set()
+            missing_sheets = []
+            for title in EVENT_SPEC_SHEET_TITLES:
+                target = sheets_by_title.get(title)
+                if not target:
+                    missing_sheets.append(title)
+                    continue
+                if target['sheetId'] not in target_ids:
+                    targets.append(target)
+                    target_ids.add(target['sheetId'])
+
+            values_cache = {}
+
+            def load_sheet_rows(target):
+                sheet_id = target['sheetId']
+                if sheet_id not in values_cache:
+                    data = _fapi(
+                        'GET',
+                        '/sheets/v2/spreadsheets/' + token + '/values/' + sheet_id,
+                    )
+                    values_cache[sheet_id] = (
+                        data.get('valueRange', {}).get('values', [])
+                    )
+                return values_cache[sheet_id]
+
+            # 显式配置的页签先读，保证它们的解析顺序不受自动发现影响。
+            for target in targets:
+                load_sheet_rows(target)
+
+            auto_sheets = []
+            if EVENT_SPEC_AUTO_DISCOVER:
+                for sheet in sheets:
+                    sheet_id = sheet.get('sheetId')
+                    title = sheet.get('title', '').strip()
+                    if not sheet_id or sheet_id in target_ids:
+                        continue
+                    if any(marker in title for marker in EVENT_SPEC_SHEET_EXCLUDE_MARKERS):
+                        continue
+                    rows = load_sheet_rows(sheet)
+                    if looks_like_event_spec(rows):
+                        targets.append(sheet)
+                        target_ids.add(sheet_id)
+                        auto_sheets.append(sheet)
+            if not targets:
+                self._error(
+                    '未找到可用的打点规范页签（首行需包含“事件名/字段名”）',
+                    400,
+                )
                 return
-            data = _fapi(
-                'GET',
-                '/sheets/v2/spreadsheets/' + token + '/values/' + target['sheetId'],
-            )
-            rows = data.get('valueRange', {}).get('values', [])
             fields = {}
             events = {}
             event_fields = {}
-            current_event = None
-            for row in rows[1:]:
-                if len(row) >= 2:
-                    event_name = str(row[0]).strip() if row[0] else ''
-                    event_desc = str(row[1]).strip() if row[1] else ''
-                    if event_name and event_name != '事件名':
-                        events[event_name] = event_desc
-                        current_event = event_name
-                        event_fields.setdefault(current_event, {})
-                if len(row) >= 4:
-                    name = str(row[2]).strip() if row[2] else ''
-                    desc = str(row[3]).strip() if row[3] else ''
-                    if name and name not in ('字段名', '事件名'):
-                        field_type = (
-                            str(row[5]).strip().upper()
-                            if len(row) >= 6 and row[5]
-                            else ''
+            for target in targets:
+                rows = load_sheet_rows(target)
+                # 每个页签都跳过自己的表头，并重置事件上下文，避免上一页签的
+                # 最后一条事件把下一页签开头的字段认领过去。
+                current_event = None
+                for row in rows[1:]:
+                    if len(row) >= 2:
+                        event_name = cell_text(row[0])
+                        # 有些事件没有填写「事件上报时机」，但备注里有可读说明。
+                        # 之前直接存空字符串，会被界面误判成「规范未收录」。
+                        event_desc = cell_text(row[1]) or (
+                            cell_text(row[7]) if len(row) >= 8 else ''
                         )
-                        value_desc = (
-                            str(row[4]).strip()
-                            if len(row) >= 5 and row[4]
-                            else ''
-                        )
-                        field = {
-                            'desc': desc,
-                            'type': field_type,
-                            'value_desc': value_desc,
-                        }
-                        fields[name] = field
-                        if current_event:
-                            event_fields.setdefault(current_event, {})[name] = field
+                        if event_name and event_name != '事件名':
+                            events[event_name] = event_desc
+                            current_event = event_name
+                            event_fields.setdefault(current_event, {})
+                    if len(row) >= 4:
+                        name = cell_text(row[2])
+                        desc = cell_text(row[3])
+                        if name and name not in ('字段名', '事件名'):
+                            field_type = (
+                                cell_text(row[5]).upper()
+                                if len(row) >= 6
+                                else ''
+                            )
+                            value_desc = (
+                                cell_text(row[4])
+                                if len(row) >= 5
+                                else ''
+                            )
+                            field = {
+                                'desc': desc,
+                                'type': field_type,
+                                'value_desc': value_desc,
+                            }
+                            fields[name] = field
+                            if current_event:
+                                event_fields.setdefault(current_event, {})[name] = field
             if not fields:
                 self._error('页签中没有读取到有效字段，未修改本地规范', 400)
                 return
@@ -2043,6 +2206,10 @@ class HuTestHandler(BaseHTTPRequestHandler):
             if os.path.exists(spec_path):
                 with open(spec_path, encoding='utf-8') as f:
                     existing = json.load(f)
+            old_events = existing.get('events', {})
+            for event_name, event_desc in events.items():
+                if not event_desc:
+                    events[event_name] = cell_text(old_events.get(event_name, ''))
             old_fields = existing.get('fields', {})
             old_event_fields = existing.get('event_fields', {})
             updated_fields = {}
@@ -2091,7 +2258,9 @@ class HuTestHandler(BaseHTTPRequestHandler):
                 'ok': True,
                 'count': len(fields),
                 'event_count': len(spec['events']),
-                'sheet': target['title'],
+                'sheet': '、'.join(target['title'] for target in targets),
+                'auto_sheets': [target['title'] for target in auto_sheets],
+                'missing_sheets': missing_sheets,
                 'events_preserved': len(spec['events']),
                 'conflict_count': len(spec['consistency_issues']),
                 'consistency_issues': spec['consistency_issues'],
@@ -2166,7 +2335,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
                     'client_id': app_id, 'client_secret': app_secret,
                     'redirect_uri': AUTH_REDIRECT_URI,
                 },
-                timeout=10,
+                timeout=10, proxies=NO_PROXY_MAP,
             )
             data = token_resp.json()
             if data.get('code') != 0:
@@ -2196,7 +2365,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
             user_resp = requests.get(
                 'https://open.feishu.cn/open-apis/authen/v1/user_info',
                 headers={'Authorization': f'Bearer {access_token}'},
-                timeout=10,
+                timeout=10, proxies=NO_PROXY_MAP,
             )
             user_data = user_resp.json()
             if user_data.get('code') != 0:
@@ -2393,7 +2562,7 @@ class HuTestHandler(BaseHTTPRequestHandler):
 
         if action == 'submit':
             prompt = (
-                "v1.5 已禁用 AI/人工提示词方式写入飞书项目。\n"
+                "v2.0 已禁用 AI/人工提示词方式写入飞书项目。\n"
                 "标准字段、经办人、附件上传、工作项创建与结果校验统一由 "
                 "claude_tasks/auto_submit.py 的确定性脚本负责；请在平台中点击重试。\n"
             )
@@ -2434,8 +2603,8 @@ def main():
     """
     启动 HTTP 服务器。
 
-    ThreadingHTTPServer(('127.0.0.1', PORT), HuTestHandler) 做了三件事：
-      1. 绑定 127.0.0.1:8898（只监听本机，外部无法访问——安全）
+    ThreadingHTTPServer(('0.0.0.0', PORT), HuTestHandler) 做了三件事：
+      1. 绑定 0.0.0.0:8898（本机与局域网内其他设备都能访问）
       2. 每当有请求进来，在线程池中创建一个 HuTestHandler 实例处理
       3. 处理完销毁，等待下一个请求
 
@@ -2443,8 +2612,10 @@ def main():
     """
     _load_auth_sessions()
     _load_recorded_problem_signatures()
-    server = ThreadingHTTPServer(('127.0.0.1', PORT), HuTestHandler)
-    print(f'🐯 萌虎测试平台 v1.5: http://127.0.0.1:{PORT}')
+    # 绑定 0.0.0.0：本机与局域网内其他设备都能通过内网 IP 访问
+    server = ThreadingHTTPServer(('0.0.0.0', PORT), HuTestHandler)
+    print(f'🐯 萌虎测试平台 v2.0: http://192.168.60.238:{PORT}')
+    print(f'   内网访问: http://<本机内网IP>:{PORT}')
     print(f'   Ctrl+C 停止')
     import signal
 

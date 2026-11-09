@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-虎测平台 v1.5 - 飞书项目自动提交脚本
+虎测平台 v2.0 - 飞书项目自动提交脚本
 所有标准字段、附件上传、工作项创建和结果校验均由确定性脚本完成。
 AI 不参与外部写入。
 """
@@ -71,6 +71,49 @@ def _resolve_reporter_user_key():
     except Exception:
         pass
     return DEFAULT_USER_KEY
+
+
+def _resolve_submitter_user_key(submitter):
+    """把「提交人」（问卷里填的名字）解析成 Meegle user_key，解析不到返回空串。
+
+    问卷提交的 bug 建单时会把提交人加进关注人（watchers），这样他能收到状态变更通知。
+    名字可能带括号备注（如「酒酒（37）」），解析失败时会去掉括号再试一次。
+    """
+    if not submitter:
+        return ''
+    raw = str(submitter).strip()
+    if not raw:
+        return ''
+    candidates = [raw]
+    stripped = re.sub(r'[（(].*?[)）]', '', raw).strip()
+    if stripped and stripped != raw:
+        candidates.append(stripped)
+
+    for candidate in candidates:
+        if candidate in USER_KEY_CACHE:
+            return USER_KEY_CACHE[candidate]
+        try:
+            result = _run_meegle([
+                'user', 'search',
+                '--project-key', PROJECT_KEY,
+                '--user-keys', candidate,
+                '--format', 'json',
+                '--select', 'user_key,name,email',
+            ], timeout=20)
+            if result.returncode != 0:
+                continue
+            data = _parse_json_output(result.stdout)
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                if isinstance(item, dict) and item.get('user_key'):
+                    uk = str(item['user_key'])
+                    USER_KEY_CACHE[raw] = uk
+                    USER_KEY_CACHE[candidate] = uk
+                    return uk
+        except Exception:
+            continue
+    log(f'Meegle: 提交人「{raw}」未能在飞书项目里找到对应账号，跳过关注人')
+    return ''
 
 
 sys.path.insert(0, BASE_DIR)
@@ -273,7 +316,7 @@ def _meegle_base_fields(bug):
     assignee = bug.get('bug', {}).get('assignee', '萌虎')
     uk = _resolve_user_key(assignee)
     reporter_uk = _resolve_reporter_user_key()
-    return [
+    fields = [
         {'field_key': 'template', 'field_value': str(TEMPLATE_ID)},
         {'field_key': 'name', 'field_value': data['name']},
         {'field_key': 'description', 'field_value': data['description']},
@@ -282,6 +325,28 @@ def _meegle_base_fields(bug):
         {'field_key': 'issue_operator', 'field_value': _json_dumps([uk])},
         {'field_key': 'issue_reporter', 'field_value': _json_dumps([reporter_uk])},
     ]
+    # 问卷提交的 bug：把提交人加进关注人（watchers），让他能收到状态变更通知
+    submitter = bug.get('submitter') or bug.get('bug', {}).get('submitter', '')
+    if submitter:
+        submitter_uk = _resolve_submitter_user_key(submitter)
+        if submitter_uk:
+            fields.append({
+                'field_key': 'watchers',
+                'field_value': _json_dumps([submitter_uk]),
+            })
+            log(f'Meegle: 关注人 + 提交人 {submitter}({submitter_uk})')
+    return fields
+
+
+def _create_issue_once(fields):
+    """调一次飞书项目的建单接口（单独抽出来，方便失败后换字段重试）。"""
+    return _run_meegle([
+        'workitem', 'create',
+        '--project-key', PROJECT_KEY,
+        '--work-item-type', WORK_ITEM_TYPE,
+        '--fields', _json_dumps(fields),
+        '--format', 'json',
+    ], timeout=180)
 
 
 def _meegle_create_issue(bug_id, path, bug, attachments):
@@ -315,13 +380,14 @@ def _meegle_create_issue(bug_id, path, bug, attachments):
                     'field_value': _json_dumps(uploaded),
                 })
             log(f'Meegle: creating issue with {len(attachments)} attachments...')
-            create = _run_meegle([
-                'workitem', 'create',
-                '--project-key', PROJECT_KEY,
-                '--work-item-type', WORK_ITEM_TYPE,
-                '--fields', _json_dumps(fields),
-                '--format', 'json',
-            ], timeout=180)
+            create = _create_issue_once(fields)
+            # 兜底：万一飞书不接受「关注人」字段，去掉它重试一次，保证 bug 仍然能提上去
+            if create.returncode != 0 and any(f.get('field_key') == 'watchers' for f in fields):
+                err_text = (create.stderr or create.stdout).strip()
+                if 'watcher' in err_text.lower() or '关注人' in err_text:
+                    log(f'Meegle: 关注人字段被拒绝，去掉后重试：{err_text[:160]}')
+                    fields = [f for f in fields if f.get('field_key') != 'watchers']
+                    create = _create_issue_once(fields)
             if create.returncode != 0:
                 bug['error'] = f'Meegle 创建失败: {(create.stderr or create.stdout).strip()}'
                 return False

@@ -28,7 +28,7 @@ class EventSpecUpdateTests(unittest.TestCase):
 
             responses = [
                 {'sheets': [{
-                    'title': server.EVENT_SPEC_SHEET_TITLE, 'sheetId': 'sheet-1'
+                    'title': server.EVENT_SPEC_SHEET_TITLES[0], 'sheetId': 'sheet-1'
                 }]},
                 {'valueRange': {'values': [
                     ['A', 'B', '字段名', '说明'],
@@ -68,7 +68,7 @@ class EventSpecUpdateTests(unittest.TestCase):
 
             responses = [
                 {'sheets': [{
-                    'title': server.EVENT_SPEC_SHEET_TITLE, 'sheetId': 'sheet-1'
+                    'title': server.EVENT_SPEC_SHEET_TITLES[0], 'sheetId': 'sheet-1'
                 }]},
                 {'valueRange': {'values': [['A', 'B', '字段名', '说明']]}},
             ]
@@ -96,13 +96,16 @@ class EventSpecUpdateTests(unittest.TestCase):
                 {'sheets': [
                     {'title': '其他页签', 'sheetId': 'wrong-sheet'},
                     {
-                        'title': server.EVENT_SPEC_SHEET_TITLE,
+                        'title': server.EVENT_SPEC_SHEET_TITLES[0],
                         'sheetId': 'configured-sheet',
                     },
                 ]},
                 {'valueRange': {'values': [
                     ['事件名', '事件上报时机', '字段名', '说明', '取值', '类型'],
                     ['se_test2', '会话变化', 'did', '设备ID', '设备唯一值', 'string'],
+                ]}},
+                {'valueRange': {'values': [
+                    ['说明', '不是打点规范'],
                 ]}},
             ]
             handler, result = self.make_handler()
@@ -159,7 +162,7 @@ class EventSpecUpdateTests(unittest.TestCase):
             handler, result = self.make_handler()
             with (
                 patch.object(server, 'DATA_DIR', data_dir),
-                patch.object(server, 'EVENT_SPEC_SHEET_TITLE', '新规范页'),
+                patch.object(server, 'EVENT_SPEC_SHEET_TITLES', ['新规范页']),
                 patch('lib.feishu._api', side_effect=responses),
             ):
                 handler._handle_events_spec_update({
@@ -169,6 +172,150 @@ class EventSpecUpdateTests(unittest.TestCase):
             self.assertNotIn('error', result)
             self.assertEqual(result['json']['sheet'], '新规范页')
 
+    def test_auto_discovers_new_spec_sheet(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), 'w', encoding='utf-8'
+            ) as f:
+                json.dump({'events': {}, 'fields': {}}, f)
+            header = ['事件名', '事件上报时机', '字段名', '说明', '取值', '类型']
+            responses = [
+                {'sheets': [
+                    {'title': '新手漏斗打点', 'sheetId': 'known'},
+                    {'title': '旧版打点（废弃）', 'sheetId': 'deprecated'},
+                    {'title': '缩写字典', 'sheetId': 'dictionary'},
+                    {'title': '新手漏斗打点_c组', 'sheetId': 'new-group'},
+                ]},
+                {'valueRange': {'values': [
+                    header,
+                    ['first_open', '首次打开游戏', '', '', '', ''],
+                ]}},
+                {'valueRange': {'values': [
+                    ['缩写规范', None, None],
+                    ['chg_fr', '切换前场景'],
+                ]}},
+                {'valueRange': {'values': [
+                    header,
+                    ['tt_c_01_start', 'C组引导开始', '', '', '', ''],
+                    ['tt_c_02_result', 'C组引导结果',
+                     'result', '玩家操作结果', '1：成功；\n2：失败', 'int'],
+                ]}},
+            ]
+            handler, result = self.make_handler()
+            with (
+                patch.object(server, 'DATA_DIR', data_dir),
+                patch.object(server, 'EVENT_SPEC_SHEET_TITLES', ['新手漏斗打点']),
+                patch('lib.feishu._api', side_effect=responses),
+            ):
+                handler._handle_events_spec_update({
+                    'url': 'https://example.feishu.cn/sheets/token'
+                })
+
+            self.assertNotIn('error', result)
+            self.assertEqual(result['json']['auto_sheets'], ['新手漏斗打点_c组'])
+            self.assertIn('新手漏斗打点_c组', result['json']['sheet'])
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), encoding='utf-8'
+            ) as f:
+                saved = json.load(f)
+            self.assertIn('tt_c_02_result', saved['events'])
+            self.assertEqual(
+                saved['event_fields']['tt_c_02_result']['result']['type'],
+                'INT',
+            )
+            self.assertNotIn('旧版打点（废弃）', result['json']['sheet'])
+
+    def test_reads_each_configured_sheet_and_skips_its_header(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), 'w', encoding='utf-8'
+            ) as f:
+                json.dump({'events': {}, 'fields': {}}, f)
+            header = ['事件名', '事件上报时机', '字段名', '说明', '取值', '类型']
+            responses = [
+                {'sheets': [
+                    {'title': '新手漏斗打点_a组', 'sheetId': 'group-a'},
+                    {'title': '新手漏斗打点', 'sheetId': 'funnel'},
+                ]},
+                {'valueRange': {'values': [
+                    header,
+                    ['first_open', '首次打开游戏', '', '', '', ''],
+                    ['', '', 'did', '设备ID', '设备唯一值', 'string'],
+                ]}},
+                {'valueRange': {'values': [
+                    header,
+                    ['tt_a_01_merge_generator_01_start', '生成器点击1-开始', '', '', '', ''],
+                    ['tt_a_04_merge_gameplay_01_result', '玩家操作结果',
+                     'result', '玩家合成结果', '1：合成成功', 'int'],
+                ]}},
+            ]
+            handler, result = self.make_handler()
+            with (
+                patch.object(server, 'DATA_DIR', data_dir),
+                patch.object(
+                    server,
+                    'EVENT_SPEC_SHEET_TITLES',
+                    ['新手漏斗打点', '新手漏斗打点_a组'],
+                ),
+                patch('lib.feishu._api', side_effect=responses),
+            ):
+                handler._handle_events_spec_update({
+                    'url': 'https://example.feishu.cn/sheets/token'
+                })
+
+            self.assertNotIn('error', result)
+            self.assertEqual(result['json']['event_count'], 3)
+            self.assertEqual(result['json']['sheet'], '新手漏斗打点、新手漏斗打点_a组')
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), encoding='utf-8'
+            ) as f:
+                saved = json.load(f)
+            self.assertIn('tt_a_01_merge_generator_01_start', saved['events'])
+            self.assertEqual(
+                list(saved['event_fields']['tt_a_04_merge_gameplay_01_result']),
+                ['result'],
+            )
+            self.assertNotIn('result', saved['event_fields']['first_open'])
+
+    def test_sheet_boundary_does_not_attach_orphan_field_to_previous_event(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), 'w', encoding='utf-8'
+            ) as f:
+                json.dump({'events': {}, 'fields': {}}, f)
+            header = ['事件名', '事件上报时机', '字段名', '说明', '取值', '类型']
+            responses = [
+                {'sheets': [
+                    {'title': '页签一', 'sheetId': 'one'},
+                    {'title': '页签二', 'sheetId': 'two'},
+                ]},
+                {'valueRange': {'values': [
+                    header,
+                    ['event_a', 'A', '', '', '', ''],
+                ]}},
+                {'valueRange': {'values': [
+                    header,
+                    ['', '', 'orphan_field', '无主字段', '', 'string'],
+                    ['event_b', 'B', '', '', '', ''],
+                ]}},
+            ]
+            handler, result = self.make_handler()
+            with (
+                patch.object(server, 'DATA_DIR', data_dir),
+                patch.object(server, 'EVENT_SPEC_SHEET_TITLES', ['页签一', '页签二']),
+                patch('lib.feishu._api', side_effect=responses),
+            ):
+                handler._handle_events_spec_update({
+                    'url': 'https://example.feishu.cn/sheets/token'
+                })
+
+            self.assertNotIn('error', result)
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), encoding='utf-8'
+            ) as f:
+                saved = json.load(f)
+            self.assertNotIn('orphan_field', saved['event_fields']['event_a'])
+
     def test_same_field_with_different_types_is_saved_as_conflict(self):
         with tempfile.TemporaryDirectory() as data_dir:
             with open(
@@ -177,7 +324,7 @@ class EventSpecUpdateTests(unittest.TestCase):
                 json.dump({'events': {}, 'fields': {}}, f)
             responses = [
                 {'sheets': [{
-                    'title': server.EVENT_SPEC_SHEET_TITLE, 'sheetId': 'sheet-1'
+                    'title': server.EVENT_SPEC_SHEET_TITLES[0], 'sheetId': 'sheet-1'
                 }]},
                 {'valueRange': {'values': [
                     ['事件名', '说明', '字段名', '字段说明', '取值', '类型'],
@@ -219,6 +366,42 @@ class EventSpecUpdateTests(unittest.TestCase):
             server.find_event_field_type_conflicts(event_fields),
             [],
         )
+
+    def test_blank_timing_uses_remark_as_event_description(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), 'w', encoding='utf-8'
+            ) as f:
+                json.dump({'events': {}, 'fields': {}}, f)
+            responses = [
+                {'sheets': [{
+                    'title': server.EVENT_SPEC_SHEET_TITLES[0], 'sheetId': 'sheet-1'
+                }]},
+                {'valueRange': {'values': [
+                    ['事件名', '事件上报时机', '字段名', '说明', '取值', '类型', '', '备注'],
+                    ['tt_b_05_go_merge_result', '', 'result', '玩家点击行为',
+                     '1：点击Build按钮UI；\n2：点击其他位置', 'int', '',
+                     '【可重复打点】玩家行为'],
+                ]}},
+            ]
+            handler, result = self.make_handler()
+            with (
+                patch.object(server, 'DATA_DIR', data_dir),
+                patch('lib.feishu._api', side_effect=responses),
+            ):
+                handler._handle_events_spec_update({
+                    'url': 'https://example.feishu.cn/sheets/abc123'
+                })
+
+            self.assertNotIn('error', result)
+            with open(
+                os.path.join(data_dir, 'event_spec.json'), encoding='utf-8'
+            ) as f:
+                saved = json.load(f)
+            self.assertEqual(
+                saved['events']['tt_b_05_go_merge_result'],
+                '【可重复打点】玩家行为',
+            )
 
     def test_expired_auth_returns_actionable_message(self):
         handler, result = self.make_handler()

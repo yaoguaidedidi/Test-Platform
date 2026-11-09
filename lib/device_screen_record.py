@@ -195,6 +195,48 @@ class DeviceScreenRecorder:
         except (OSError, ValueError, TypeError):
             return False
 
+    def can_recover_window(self, session_id, anchor_time,
+                           before_seconds=None, after_seconds=None):
+        """检查报错时刻的录屏窗口是否还在保留的历史片段内。
+
+        循环录屏只保留最近 history_seconds 秒，报错太早时片段已被滚动删除，
+        此时按锚点生成会落到"最近的画面"，与报错时刻无关，应拒绝生成。
+        """
+        before = (
+            self.before_seconds if before_seconds is None
+            else max(1, int(before_seconds))
+        )
+        after = (
+            self.after_seconds if after_seconds is None
+            else max(0, int(after_seconds))
+        )
+        try:
+            anchor = float(anchor_time)
+        except (TypeError, ValueError):
+            return False
+        window_start = anchor - before
+        window_end = anchor + after
+        try:
+            with open(
+                os.path.join(self.root, _safe_id(session_id), 'metadata.json'),
+                encoding='utf-8',
+            ) as handle:
+                session = json.load(handle)
+            segments = [
+                item for item in session.get('segments', [])
+                if os.path.isfile(item.get('path', ''))
+                and item.get('start_epoch') is not None
+                and item.get('end_epoch') is not None
+            ]
+        except (OSError, ValueError, TypeError):
+            return False
+        if not segments:
+            return False
+        earliest = min(float(item['start_epoch']) for item in segments)
+        latest = max(float(item['end_epoch']) for item in segments)
+        # 窗口与保留片段有任何重叠即可恢复（允许 2 秒容差）
+        return earliest <= window_end + 2 and latest >= window_start - 2
+
     def snapshot(self, output_dir, session_id='', anchor_time=None,
                  before_seconds=None, after_seconds=None):
         """冻结问题前 before_seconds 秒 + 问题后 after_seconds 秒视频。
@@ -279,6 +321,19 @@ class DeviceScreenRecorder:
                 before_seconds, after_seconds,
             )
             if not selected:
+                # 有锚点却选不到窗口：先判断片段是否带新式时间戳。
+                # 带时间戳说明是正常录制的新数据，锚点窗口已超出保留范围，
+                # 此时生成"最近片段"会和报错时刻对不上，必须明确失败；
+                # 只有完全没有时间戳的旧数据才回退到尾部窗口兼容。
+                has_epoch = any(
+                    item.get('start_epoch') is not None
+                    and item.get('end_epoch') is not None
+                    for item in segments
+                )
+                if has_epoch:
+                    raise RuntimeError(
+                        '报错时刻已超出循环录屏保留范围，无法生成现场录屏'
+                    )
                 selected, skip, out_duration = self._tail_window(
                     segments, after, after_seconds, before_seconds
                 )

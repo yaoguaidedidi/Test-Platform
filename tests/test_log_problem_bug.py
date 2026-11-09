@@ -59,6 +59,10 @@ class FakeRecorder:
     def has_session(self, session_id):
         return session_id == 'session-1'
 
+    def can_recover_window(self, session_id, anchor_time,
+                           before_seconds=None, after_seconds=None):
+        return True
+
     def snapshot(self, output_dir, session_id='', anchor_time=None,
                  before_seconds=None, after_seconds=None):
         self.snapshots.append((
@@ -396,6 +400,28 @@ class LogProblemBugTests(unittest.TestCase):
         )
         self.assertEqual(recorder.anchors[0][0], 'session-1')
         self.assertEqual(recorder.anchors[0][1], 1234.5)
+
+    def test_problem_bug_skips_recording_when_unavailable(self):
+        """签名去重等标为 unavailable 的问题，提交 Bug 不应再尝试录屏。"""
+        handler, response = self.make_handler()
+        capture = FakeCapture()
+        capture.problem_data.update({'recording_status': 'unavailable'})
+        recorder = FakeRecorder()
+
+        with (
+            patch.object(server, '_device_log_capture', capture),
+            patch.object(server, '_device_screen_recorder', recorder),
+            patch.object(
+                server, 'save_draft',
+                return_value=('problem-norec', '/tmp/x'),
+            ) as save,
+            patch.object(server, 'log_activity'),
+        ):
+            handler._handle_log_problem_bug('abc123', {'assignee': '萌虎'})
+
+        self.assertEqual(response['recording_status'], 'none')
+        self.assertEqual(recorder.snapshots, [])
+        self.assertEqual(save.call_args.kwargs['recording_status'], 'none')
 
     def test_problem_bug_prefers_automatic_problem_recording(self):
         handler, response = self.make_handler()

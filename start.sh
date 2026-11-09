@@ -1,7 +1,7 @@
 #!/bin/bash
-# 萌虎测试平台 v1.5 启动脚本（带自动重启）
+# 萌虎测试平台 v2.0 启动脚本（带自动重启）
 cd "$(dirname "$0")"
-echo "🐯 启动萌虎测试平台 v1.5..."
+echo "🐯 启动萌虎测试平台 v2.0..."
 
 MAX_CRASHES=5
 CRASH_COUNT=0
@@ -16,7 +16,7 @@ while true; do
 
     # 正常退出不重启
     if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 130 ]; then
-        echo "👋 萌虎测试平台 v1.5 已停止"
+        echo "👋 萌虎测试平台 v2.0 已停止"
         exit 0
     fi
 
